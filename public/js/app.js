@@ -576,7 +576,6 @@ async function cargarArchivoGeneral() {
         return '<p style="color: var(--text-primary);">Error al cargar el módulo Archivo General</p>';
     }
 }
-}
 
 function eliminarUsuario(id) {
     usuariosModule.eliminarUsuario(id, 'Usuario');
