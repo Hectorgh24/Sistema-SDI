@@ -228,12 +228,12 @@
         <div class="flex items-center justify-between p-4 md:p-6">
             <!-- Logo y Título -->
             <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-folder-open text-white text-lg"></i>
+                <div class="w-14 h-14 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-folder-open text-white text-2xl"></i>
                 </div>
                 <div>
-                    <h1 class="text-2xl font-bold" style="color: var(--header-text);">SDI</h1>
-                    <p class="text-sm" style="color: var(--text-secondary);">Gestión Documental</p>
+                    <h1 class="text-3xl font-bold" style="color: var(--header-text);">SDI</h1>
+                    <p class="text-base" style="color: var(--text-secondary);">Gestión Documental</p>
                 </div>
             </div>
 
@@ -255,15 +255,15 @@
                 </button>
                 
                 <button onclick="cargarModulo('perfil')" class="flex items-center space-x-2 px-4 py-2 rounded-lg transition" style="color: var(--text-primary); background-color: transparent;" onmouseover="this.style.backgroundColor='var(--bg-tertiary)'" onmouseout="this.style.backgroundColor='transparent'" title="Mi Perfil">
-                    <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xs" id="usuarioInicialHeader">
+                    <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm" id="usuarioInicialHeader">
                         H
                     </div>
                     <div class="text-left hidden md:block">
-                        <p class="text-base font-medium" id="usuarioNombreHeader" style="color: var(--text-primary);"></p>
-                        <p class="text-sm" id="usuarioRolHeader" style="color: var(--text-secondary);"></p>
+                        <p class="text-lg font-medium" id="usuarioNombreHeader" style="color: var(--text-primary);"></p>
+                        <p class="text-base" id="usuarioRolHeader" style="color: var(--text-secondary);"></p>
                     </div>
                 </button>
-                <button onclick="cerrarSesion()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-semibold text-base" title="Cerrar Sesión">
+                <button onclick="cerrarSesion()" class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-semibold text-lg" title="Cerrar Sesión">
                     Cerrar Sesión
                 </button>
             </div>

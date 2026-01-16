@@ -66,20 +66,6 @@ function obtenerOpcionesMenu() {
             visible: auth.esAdmin()
         },
         {
-            titulo: 'Documentos',
-            icono: 'fa-file-alt',
-            descripcion: 'Gestionar documentos',
-            modulo: 'documentos',
-            visible: true
-        },
-        {
-            titulo: 'Carpetas Físicas',
-            icono: 'fa-folder',
-            descripcion: 'Gestionar carpetas físicas',
-            modulo: 'carpetas',
-            visible: auth.esAdmin() || auth.esAdministrativo()
-        },
-        {
             titulo: 'Archivo General SDI',
             icono: 'fa-archive',
             descripcion: 'Categoría archivo general SDI',
@@ -92,12 +78,7 @@ function obtenerOpcionesMenu() {
             descripcion: 'Gestionar categorías',
             modulo: 'categorias',
             visible: auth.esAdmin() || auth.esAdministrativo()
-        },
-        {
-            titulo: 'Mi Perfil',
-            icono: 'fa-user-circle',
-            descripcion: 'Ver y editar mi perfil',
-            modulo: 'perfil',
+        }
             visible: true
         }
     ];
