@@ -88,6 +88,21 @@ class Carpeta
     }
 
     /**
+     * Obtener número máximo de carpeta
+     * 
+     * @return int|null Número máximo de carpeta o null si no hay carpetas
+     */
+    public function obtenerMaximoCarpeta()
+    {
+        $sql = "SELECT MAX(no_carpeta_fisica) as maximo FROM " . self::TABLE;
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return !empty($result['maximo']) ? (int)$result['maximo'] : null;
+    }
+
+    /**
      * Contar total de carpetas
      * 
      * @return int Total de carpetas

@@ -163,22 +163,19 @@ const archivoGeneralModule = {
         
         return `
             <form id="formCarpeta" class="space-y-6 max-w-2xl">
+                <!-- Campo oculto con el valor real generado -->
+                <input type="hidden" id="noCarpetaReal" name="no_carpeta_fisica" value="${siguienteNo}">
+                
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Número de Carpeta Física (Automático) -->
+                    <!-- Número de Carpeta Física (Solo Lectura) -->
                     <div>
-                        <label for="noCarpeta" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
-                            <i class="fas fa-hashtag mr-2"></i>No. Carpeta Física <span class="text-green-500" title="Se genera automáticamente">✓</span>
+                        <label for="noCarpetaDisplay" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
+                            <i class="fas fa-hashtag mr-2"></i>No. Carpeta Física <span class="text-green-500 font-bold" title="Generado automáticamente">AUTOMÁTICO</span>
                         </label>
-                        <input 
-                            type="number" 
-                            id="noCarpeta" 
-                            name="no_carpeta_fisica" 
-                            value="${siguienteNo}"
-                            readonly
-                            class="w-full px-4 py-2 border rounded-lg bg-opacity-50"
-                            style="background-color: var(--bg-secondary); color: var(--text-primary); border-color: var(--border-color); cursor: not-allowed;"
-                        >
-                        <p class="text-xs mt-1" style="color: var(--text-secondary);">Se genera automáticamente</p>
+                        <div class="w-full px-4 py-2 border rounded-lg" style="background-color: var(--bg-secondary); color: var(--text-primary); border-color: var(--border-color); display: flex; align-items: center; min-height: 42px; font-size: 16px; font-weight: bold;">
+                            <i class="fas fa-lock mr-2" style="color: #10b981;"></i><span id="noCarpetaDisplay">${siguienteNo}</span>
+                        </div>
+                        <p class="text-xs mt-1" style="color: var(--text-secondary);"><i class="fas fa-info-circle mr-1"></i>Se genera automáticamente en orden secuencial</p>
                     </div>
 
                     <!-- Etiqueta Identificadora -->

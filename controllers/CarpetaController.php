@@ -88,8 +88,17 @@ class CarpetaController
                 response(false, 'Datos requeridos faltantes', null, 400);
             }
 
+            // VALIDACIÓN: Verificar que el número de carpeta sea el correcto (próximo secuencial)
+            $noCarpetaFisica = (int)$input['no_carpeta_fisica'];
+            $carpetaMaxima = $this->carpetaModel->obtenerMaximoCarpeta();
+            $siguienteCarpeta = ($carpetaMaxima === null) ? 1 : $carpetaMaxima + 1;
+            
+            if ($noCarpetaFisica !== $siguienteCarpeta) {
+                response(false, "Número de carpeta inválido. El número debe ser $siguienteCarpeta", null, 400);
+            }
+
             $id_carpeta = $this->carpetaModel->crear([
-                'no_carpeta_fisica'       => $input['no_carpeta_fisica'],
+                'no_carpeta_fisica'       => $noCarpetaFisica,
                 'etiqueta_identificadora' => $input['etiqueta_identificadora'],
                 'descripcion'             => $input['descripcion'] ?? '',
                 'estado_gestion'          => $input['estado_gestion'] ?? 'pendiente',
