@@ -4,6 +4,8 @@
 -- Motor: MySQL / MariaDB (InnoDB)
 -- ======================================================================================
 
+USE `sdi_gestion_documental`;
+
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- Limpieza de tablas existentes para evitar conflictos al recrear
