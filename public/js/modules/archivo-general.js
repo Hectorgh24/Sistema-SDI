@@ -25,6 +25,11 @@ const archivoGeneralModule = {
             
             // Cargar configuración de campos dinámicos para Auditoría
             await this.cargarColumnasAuditoria();
+            
+            // Attachear listeners después de cargar vistas
+            setTimeout(() => {
+                this.attachFormularioCarpetaListener();
+            }, 100);
         } catch (error) {
             console.error('Error inicializando Archivo General:', error);
             ui.toast('Error inicializando módulo', 'error');
@@ -85,6 +90,8 @@ const archivoGeneralModule = {
                 btnDocumentos.style.color = 'var(--text-secondary)';
             }
             contenido.innerHTML = await this.mostrarFormularioCarpeta();
+            // Re-attachear listener del formulario
+            this.attachFormularioCarpetaListener();
         } else if (pestana === 'documentos') {
             if (btnCarpetas) {
                 btnCarpetas.style.borderColor = 'transparent';
@@ -95,6 +102,42 @@ const archivoGeneralModule = {
                 btnDocumentos.style.color = 'var(--text-primary)';
             }
             contenido.innerHTML = await this.mostrarFormularioDocumento();
+            // Re-attachear listener del formulario documento
+            this.attachFormularioDocumentoListener();
+        }
+    },
+
+    /**
+     * Attachear listener del formulario carpeta
+     */
+    attachFormularioCarpetaListener() {
+        const form = document.getElementById('formCarpeta');
+        if (form) {
+            // Remover listeners anteriores
+            const newForm = form.cloneNode(true);
+            form.parentNode.replaceChild(newForm, form);
+            
+            document.getElementById('formCarpeta').addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.crearCarpeta(new FormData(e.target));
+            });
+        }
+    },
+
+    /**
+     * Attachear listener del formulario documento
+     */
+    attachFormularioDocumentoListener() {
+        const form = document.getElementById('formDocumento');
+        if (form) {
+            // Remover listeners anteriores
+            const newForm = form.cloneNode(true);
+            form.parentNode.replaceChild(newForm, form);
+            
+            document.getElementById('formDocumento').addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.registrarDocumento(new FormData(e.target));
+            });
         }
     },
 
@@ -210,13 +253,6 @@ const archivoGeneralModule = {
                     </table>
                 </div>
             </div>
-
-            <script>
-                document.getElementById('formCarpeta').addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    archivoGeneralModule.crearCarpeta(new FormData(this));
-                });
-            </script>
         `;
     },
 
@@ -278,25 +314,40 @@ const archivoGeneralModule = {
                 return;
             }
 
+            console.log('📝 Creando carpeta con datos:', datos);
+
             const resultado = await api.post('/carpetas/crear', datos);
+
+            console.log('✅ Respuesta del servidor:', resultado);
 
             if (resultado.success) {
                 ui.toast('Carpeta creada exitosamente', 'success');
+                
                 // Recargar carpetas
                 await this.cargarCarpetas();
-                // Actualizar tabla
+                console.log('📦 Carpetas cargadas:', this.carpetas);
+                
+                // Actualizar tabla dinámicamente
                 const tablaCarpetas = document.getElementById('tablaCarpetas');
                 if (tablaCarpetas) {
                     tablaCarpetas.innerHTML = await this.renderizarTablaCarpetas();
+                    console.log('✏️ Tabla actualizada');
+                } else {
+                    console.warn('⚠️ Tabla no encontrada en DOM');
                 }
+                
                 // Limpiar formulario
-                document.getElementById('formCarpeta').reset();
+                const form = document.getElementById('formCarpeta');
+                if (form) {
+                    form.reset();
+                }
             } else {
+                console.error('❌ Error en respuesta:', resultado);
                 ui.toast(resultado.message || 'Error al crear carpeta', 'error');
             }
         } catch (error) {
-            console.error('Error creando carpeta:', error);
-            ui.toast('Error al crear la carpeta', 'error');
+            console.error('❌ Error creando carpeta:', error);
+            ui.toast('Error al crear la carpeta: ' + error.message, 'error');
         }
     },
 
