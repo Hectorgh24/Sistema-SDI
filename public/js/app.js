@@ -79,8 +79,6 @@ function obtenerOpcionesMenu() {
             modulo: 'categorias',
             visible: auth.esAdmin() || auth.esAdministrativo()
         }
-            visible: true
-        }
     ];
 
     return opciones.filter(op => op.visible);
