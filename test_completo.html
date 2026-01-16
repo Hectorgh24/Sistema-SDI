@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Completo Auth + Crear Carpeta</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .log { background: #f5f5f5; padding: 10px; margin: 10px 0; border-left: 3px solid blue; font-size: 12px; max-height: 400px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; font-size: 14px; }
+        button:hover { background: #ddd; }
+        .success { border-left-color: green; background: #f0fff0; }
+        .error { border-left-color: red; background: #fff0f0; }
+    </style>
+</head>
+<body>
+<h1>Test Completo: Autenticación → Crear Carpeta</h1>
+
+<button onclick="paso1()">Paso 1: Autenticarse</button>
+<button onclick="paso2()">Paso 2: Verificar Autenticación</button>
+<button onclick="paso3()">Paso 3: Listar Carpetas</button>
+<button onclick="paso4()">Paso 4: Crear Carpeta</button>
+<button onclick="limpiar()">Limpiar Log</button>
+
+<div id="log"></div>
+
+<script>
+const log = (msg, tipo = 'info') => {
+    const logDiv = document.getElementById('log');
+    const entry = document.createElement('div');
+    entry.className = `log ${tipo}`;
+    entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    logDiv.appendChild(entry);
+    logDiv.scrollTop = logDiv.scrollHeight;
+};
+
+const limpiar = () => {
+    document.getElementById('log').innerHTML = '';
+};
+
+async function paso1() {
+    log('🔐 Intentando autenticarse...', 'info');
+    try {
+        const response = await fetch('/Programa-Gestion-SDI/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                email: 'hectorggh24@gmail.com',
+                password: 'password'
+            })
+        });
+        
+        const text = await response.text();
+        log(`Response status: ${response.status}`, 'info');
+        log(`Response body: ${text}`, 'info');
+        
+        const data = JSON.parse(text);
+        if (data.success) {
+            log('✓ Autenticación exitosa', 'success');
+        } else {
+            log(`✗ Autenticación fallida: ${data.message}`, 'error');
+        }
+    } catch (e) {
+        log(`✗ Error: ${e.message}`, 'error');
+    }
+}
+
+async function paso2() {
+    log('🔍 Verificando autenticación...', 'info');
+    try {
+        const response = await fetch('/Programa-Gestion-SDI/api/auth/verificar', {
+            credentials: 'include'
+        });
+        const data = await response.json();
+        log(`Respuesta: ${JSON.stringify(data)}`, data.success ? 'success' : 'error');
+    } catch (e) {
+        log(`✗ Error: ${e.message}`, 'error');
+    }
+}
+
+async function paso3() {
+    log('📋 Listando carpetas...', 'info');
+    try {
+        const response = await fetch('/Programa-Gestion-SDI/api/carpetas', {
+            credentials: 'include'
+        });
+        const data = await response.json();
+        if (data.success) {
+            const count = data.data?.carpetas?.length || 0;
+            log(`✓ Carpetas obtenidas: ${count}`, 'success');
+            log(JSON.stringify(data.data?.carpetas || []), 'info');
+        } else {
+            log(`✗ Error: ${data.message}`, 'error');
+        }
+    } catch (e) {
+        log(`✗ Error: ${e.message}`, 'error');
+    }
+}
+
+async function paso4() {
+    log('➕ Creando carpeta...', 'info');
+    try {
+        // Primero obtener el siguiente número
+        const listResponse = await fetch('/Programa-Gestion-SDI/api/carpetas', {
+            credentials: 'include'
+        });
+        const listData = await listResponse.json();
+        const carpetas = listData.data?.carpetas || [];
+        
+        let maxNo = 0;
+        for (const c of carpetas) {
+            const no = parseInt(c.no_carpeta_fisica);
+            if (no > maxNo) maxNo = no;
+        }
+        const siguienteNo = maxNo + 1;
+        log(`Máximo número actual: ${maxNo}, siguienteNo será: ${siguienteNo}`, 'info');
+        
+        const nuevoTitulo = `Carpeta ${siguienteNo} - ${Date.now()}`;
+        const datos = {
+            no_carpeta_fisica: siguienteNo,
+            titulo: nuevoTitulo,
+            etiqueta_identificadora: `TEST-${siguienteNo}-${Date.now()}`,
+            descripcion: `Creada automáticamente en ${new Date().toLocaleString()}`,
+            estado_gestion: 'pendiente'
+        };
+        
+        log(`Enviando datos: ${JSON.stringify(datos)}`, 'info');
+        
+        const response = await fetch('/Programa-Gestion-SDI/api/carpetas/crear', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(datos)
+        });
+        
+        const text = await response.text();
+        log(`Response status: ${response.status}`, 'info');
+        log(`Response: ${text}`, 'info');
+        
+        const data = JSON.parse(text);
+        if (data.success) {
+            log('✓ Carpeta creada exitosamente', 'success');
+        } else {
+            log(`✗ Error: ${data.message}`, 'error');
+        }
+    } catch (e) {
+        log(`✗ Error: ${e.message}`, 'error');
+    }
+}
+</script>
+</body>
+</html>

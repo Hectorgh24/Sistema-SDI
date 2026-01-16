@@ -20,19 +20,22 @@ const archivoGeneralModule = {
      */
     async init() {
         try {
-            // Cargar carpetas disponibles
+            // Cargar carpetas disponibles PRIMERO
             await this.cargarCarpetas();
+            console.log('✓ Carpetas cargadas:', this.carpetas);
             
             // Cargar configuración de campos dinámicos para Auditoría
             await this.cargarColumnasAuditoria();
+            console.log('✓ Columnas de auditoría cargadas');
             
             // Attachear listeners después de cargar vistas
             setTimeout(() => {
                 this.attachFormularioCarpetaListener();
+                console.log('✓ Listeners attachados');
             }, 100);
         } catch (error) {
-            console.error('Error inicializando Archivo General:', error);
-            ui.toast('Error inicializando módulo', 'error');
+            console.error('❌ Error inicializando Archivo General:', error);
+            ui.toast('Error inicializando módulo: ' + error.message, 'error');
         }
     },
 
