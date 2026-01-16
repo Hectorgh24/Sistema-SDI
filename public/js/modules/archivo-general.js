@@ -187,17 +187,41 @@ const archivoGeneralModule = {
                             <label for="noCarpetaDisplay" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
                                 <i class="fas fa-hashtag mr-2"></i>No. Carpeta Física <span class="text-green-500 font-bold" title="Generado automáticamente">AUTOMÁTICO</span>
                             </label>
-                            <div class="w-full px-4 py-3 border-2 rounded-lg flex items-center gap-2" style="background-color: var(--bg-secondary); color: var(--text-primary); border-color: #10b981; font-size: 18px; font-weight: bold; min-height: 45px;">
+                            <div class="w-full px-4 py-3 border-2 rounded-lg flex items-center gap-2 no_carpeta_display" style="background-color: var(--bg-secondary); color: var(--text-primary); border-color: #10b981; font-size: 18px; font-weight: bold; min-height: 45px;">
                                 <i class="fas fa-lock" style="color: #10b981;"></i><span id="noCarpetaDisplay">${siguienteNo}</span>
                             </div>
                             <p class="text-xs mt-2" style="color: var(--text-secondary);"><i class="fas fa-check-circle mr-1" style="color: #10b981;"></i>Se genera automáticamente</p>
                         </div>
 
-                        <!-- Etiqueta Identificadora -->
+                        <!-- Título de la Carpeta -->
                         <div>
-                            <label for="etiqueta" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
-                                <i class="fas fa-tag mr-2"></i>Etiqueta Identificadora <span class="text-red-500">*</span>
+                            <label for="titulo" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
+                                <i class="fas fa-heading mr-2"></i>Título <span class="text-red-500">*</span>
                             </label>
+                            <div>
+                                <input 
+                                    type="text" 
+                                    id="titulo" 
+                                    name="titulo" 
+                                    required
+                                    placeholder="Ej: Carpeta de Auditoría 2024"
+                                    class="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                                    style="background-color: var(--card-bg); color: var(--text-primary); border-color: var(--border-color);"
+                                    onchange="archivoGeneralModule.validarTitulo(this.value)"
+                                >
+                                <div id="errorTitulo" class="text-xs text-red-500 mt-1 hidden">
+                                    <i class="fas fa-exclamation-circle mr-1"></i><span id="mensajeTitulo"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Etiqueta Identificadora -->
+                    <div class="mt-4">
+                        <label for="etiqueta" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
+                            <i class="fas fa-tag mr-2"></i>Etiqueta Identificadora <span class="text-red-500">*</span>
+                        </label>
+                        <div>
                             <input 
                                 type="text" 
                                 id="etiqueta" 
@@ -206,7 +230,11 @@ const archivoGeneralModule = {
                                 placeholder="Ej: AUD-2024-001"
                                 class="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                                 style="background-color: var(--card-bg); color: var(--text-primary); border-color: var(--border-color);"
+                                onchange="archivoGeneralModule.validarEtiqueta(this.value)"
                             >
+                            <div id="errorEtiqueta" class="text-xs text-red-500 mt-1 hidden">
+                                <i class="fas fa-exclamation-circle mr-1"></i><span id="mensajeEtiqueta"></span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -286,6 +314,9 @@ const archivoGeneralModule = {
                                     <i class="fas fa-hashtag mr-1"></i>No.
                                 </th>
                                 <th class="px-3 sm:px-6 py-3 text-left font-semibold" style="color: var(--text-primary);">
+                                    <i class="fas fa-heading mr-1"></i>Título
+                                </th>
+                                <th class="px-3 sm:px-6 py-3 text-left font-semibold" style="color: var(--text-primary);">
                                     <i class="fas fa-tag mr-1"></i>Etiqueta
                                 </th>
                                 <th class="px-3 sm:px-6 py-3 text-left font-semibold hidden md:table-cell" style="color: var(--text-primary);">
@@ -319,7 +350,7 @@ const archivoGeneralModule = {
      */
     async renderizarTablaCarpetas() {
         if (this.carpetas.length === 0) {
-            return '<tr><td colspan="7" class="px-6 py-6 text-center text-sm" style="color: var(--text-secondary);"><i class="fas fa-inbox mr-2"></i>No hay carpetas registradas aún</td></tr>';
+            return '<tr><td colspan="8" class="px-6 py-6 text-center text-sm" style="color: var(--text-secondary);"><i class="fas fa-inbox mr-2"></i>No hay carpetas registradas aún</td></tr>';
         }
 
         return this.carpetas.map(carpeta => {
@@ -339,6 +370,9 @@ const archivoGeneralModule = {
                 <tr style="border-bottom: 1px solid var(--border-color); transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='var(--bg-secondary)'" onmouseout="this.style.backgroundColor='transparent';">
                     <td class="px-3 sm:px-6 py-4 font-bold text-sm" style="color: #3b82f6;">
                         <i class="fas fa-folder-open mr-2"></i>${carpeta.no_carpeta_fisica}
+                    </td>
+                    <td class="px-3 sm:px-6 py-4 font-medium text-sm" style="color: var(--text-primary);">
+                        <i class="fas fa-heading mr-2" style="color: #8b5cf6;"></i>${carpeta.titulo}
                     </td>
                     <td class="px-3 sm:px-6 py-4 font-medium text-sm" style="color: var(--text-primary);">
                         <i class="fas fa-tag mr-2" style="color: #6b7280;"></i>${carpeta.etiqueta_identificadora}
@@ -363,7 +397,7 @@ const archivoGeneralModule = {
                                 title="Editar carpeta">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button onclick="archivoGeneralModule.eliminarCarpeta(${carpeta.id_carpeta}, '${carpeta.etiqueta_identificadora}')" 
+                        <button onclick="archivoGeneralModule.eliminarCarpeta(${carpeta.id_carpeta}, '${carpeta.titulo}')" 
                                 class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition" 
                                 title="Eliminar carpeta">
                             <i class="fas fa-trash"></i>
@@ -381,17 +415,11 @@ const archivoGeneralModule = {
         try {
             const datos = {
                 no_carpeta_fisica: formData.get('no_carpeta_fisica'),
+                titulo: formData.get('titulo'),
                 etiqueta_identificadora: formData.get('etiqueta_identificadora'),
                 descripcion: formData.get('descripcion'),
                 estado_gestion: formData.get('estado_gestion') || 'pendiente'
             };
-
-            // Validar que la etiqueta no exista
-            const existe = this.carpetas.some(c => c.etiqueta_identificadora === datos.etiqueta_identificadora);
-            if (existe) {
-                ui.toast('La etiqueta ya existe en otra carpeta', 'error');
-                return;
-            }
 
             console.log('📝 Creando carpeta con datos:', datos);
 
@@ -414,11 +442,21 @@ const archivoGeneralModule = {
                 } else {
                     console.warn('⚠️ Tabla no encontrada en DOM');
                 }
+
+                // Actualizar total
+                const totalCarpetas = document.getElementById('totalCarpetas');
+                if (totalCarpetas) {
+                    totalCarpetas.textContent = this.carpetas.length;
+                }
                 
                 // Limpiar formulario
                 const form = document.getElementById('formCarpeta');
                 if (form) {
                     form.reset();
+                    // Actualizar el display del campo no_carpeta_fisica
+                    setTimeout(() => {
+                        document.querySelector('.no_carpeta_display').textContent = this.carpetas.length + 1;
+                    }, 100);
                 }
             } else {
                 console.error('❌ Error en respuesta:', resultado);
@@ -427,6 +465,40 @@ const archivoGeneralModule = {
         } catch (error) {
             console.error('❌ Error creando carpeta:', error);
             ui.toast('Error al crear la carpeta: ' + error.message, 'error');
+        }
+    },
+
+    /**
+     * Validar que el título no se repita
+     */
+    validarTitulo(valor) {
+        const error = document.getElementById('errorTitulo');
+        const mensaje = document.getElementById('mensajeTitulo');
+        
+        const existe = this.carpetas.some(c => c.titulo.toLowerCase() === valor.toLowerCase());
+        
+        if (existe && valor) {
+            error.classList.remove('hidden');
+            mensaje.textContent = 'El título ya existe en otra carpeta';
+        } else {
+            error.classList.add('hidden');
+        }
+    },
+
+    /**
+     * Validar que la etiqueta no se repita
+     */
+    validarEtiqueta(valor) {
+        const error = document.getElementById('errorEtiqueta');
+        const mensaje = document.getElementById('mensajeEtiqueta');
+        
+        const existe = this.carpetas.some(c => c.etiqueta_identificadora.toLowerCase() === valor.toLowerCase());
+        
+        if (existe && valor) {
+            error.classList.remove('hidden');
+            mensaje.textContent = 'La etiqueta ya existe en otra carpeta';
+        } else {
+            error.classList.add('hidden');
         }
     },
 
@@ -817,37 +889,62 @@ const archivoGeneralModule = {
             const html = `
                 <form id="formEditarCarpeta" onsubmit="archivoGeneralModule.guardarCarpeta(event, ${id})" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Título -->
+                        <div>
+                            <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
+                                <i class="fas fa-heading mr-2 text-blue-500"></i>Título <span class="text-red-500">*</span>
+                            </label>
+                            <div>
+                                <input type="text" 
+                                       id="edit_titulo" 
+                                       name="titulo" 
+                                       required 
+                                       value="${carpeta.titulo}"
+                                       class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       style="background-color: var(--card-bg); border-color: var(--border-color); color: var(--text-primary);"
+                                       placeholder="Ej: Carpeta de Auditoría 2024">
+                                <div id="editErrorTitulo" class="text-xs text-red-500 mt-1 hidden">
+                                    <i class="fas fa-exclamation-circle mr-1"></i><span id="editMensajeTitulo"></span>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Etiqueta Identificadora -->
                         <div>
                             <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
                                 <i class="fas fa-tag mr-2 text-blue-500"></i>Etiqueta Identificadora <span class="text-red-500">*</span>
                             </label>
-                            <input type="text" 
-                                   id="edit_etiqueta" 
-                                   name="etiqueta_identificadora" 
-                                   required 
-                                   value="${carpeta.etiqueta_identificadora}"
-                                   class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                   style="background-color: var(--card-bg); border-color: var(--border-color); color: var(--text-primary);"
-                                   placeholder="Ej: AUD-2024-001">
+                            <div>
+                                <input type="text" 
+                                       id="edit_etiqueta" 
+                                       name="etiqueta_identificadora" 
+                                       required 
+                                       value="${carpeta.etiqueta_identificadora}"
+                                       class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       style="background-color: var(--card-bg); border-color: var(--border-color); color: var(--text-primary);"
+                                       placeholder="Ej: AUD-2024-001">
+                                <div id="editErrorEtiqueta" class="text-xs text-red-500 mt-1 hidden">
+                                    <i class="fas fa-exclamation-circle mr-1"></i><span id="editMensajeEtiqueta"></span>
+                                </div>
+                            </div>
                         </div>
+                    </div>
 
-                        <!-- Estado de Gestión -->
-                        <div>
-                            <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
-                                <i class="fas fa-info-circle mr-2 text-blue-500"></i>Estado de Gestión <span class="text-red-500">*</span>
-                            </label>
-                            <select id="edit_estado" 
-                                    name="estado_gestion" 
-                                    required 
-                                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                   style="background-color: var(--card-bg); border-color: var(--border-color); color: var(--text-primary);">
-                                <option value="pendiente" ${carpeta.estado_gestion === 'pendiente' ? 'selected' : ''}>📋 Pendiente</option>
-                                <option value="en_revision" ${carpeta.estado_gestion === 'en_revision' ? 'selected' : ''}>🔍 En Revisión</option>
-                                <option value="archivado" ${carpeta.estado_gestion === 'archivado' ? 'selected' : ''}>📦 Archivado</option>
-                                <option value="cancelado" ${carpeta.estado_gestion === 'cancelado' ? 'selected' : ''}>❌ Cancelado</option>
-                            </select>
-                        </div>
+                    <!-- Estado de Gestión -->
+                    <div>
+                        <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
+                            <i class="fas fa-info-circle mr-2 text-blue-500"></i>Estado de Gestión <span class="text-red-500">*</span>
+                        </label>
+                        <select id="edit_estado" 
+                                name="estado_gestion" 
+                                required 
+                                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               style="background-color: var(--card-bg); border-color: var(--border-color); color: var(--text-primary);">
+                            <option value="pendiente" ${carpeta.estado_gestion === 'pendiente' ? 'selected' : ''}>📋 Pendiente</option>
+                            <option value="en_revision" ${carpeta.estado_gestion === 'en_revision' ? 'selected' : ''}>🔍 En Revisión</option>
+                            <option value="archivado" ${carpeta.estado_gestion === 'archivado' ? 'selected' : ''}>📦 Archivado</option>
+                            <option value="cancelado" ${carpeta.estado_gestion === 'cancelado' ? 'selected' : ''}>❌ Cancelado</option>
+                        </select>
                     </div>
 
                     <!-- Descripción -->
@@ -892,20 +989,41 @@ const archivoGeneralModule = {
         event.preventDefault();
 
         try {
-            const datos = {
-                etiqueta_identificadora: document.getElementById('edit_etiqueta').value.trim(),
-                descripcion: document.getElementById('edit_descripcion').value.trim(),
-                estado_gestion: document.getElementById('edit_estado').value
-            };
+            const titulo = document.getElementById('edit_titulo').value.trim();
+            const etiqueta = document.getElementById('edit_etiqueta').value.trim();
+            const estado = document.getElementById('edit_estado').value;
+            const descripcion = document.getElementById('edit_descripcion').value.trim();
 
-            // Validar que la etiqueta no exista en otra carpeta
-            const existe = this.carpetas.some(c => 
-                c.id_carpeta !== id && c.etiqueta_identificadora === datos.etiqueta_identificadora
+            // Validar que el título no exista en otra carpeta
+            const existeTitulo = this.carpetas.some(c => 
+                c.id_carpeta !== id && c.titulo.toLowerCase() === titulo.toLowerCase()
             );
-            if (existe) {
-                ui.toast('La etiqueta ya existe en otra carpeta', 'error');
+            if (existeTitulo) {
+                const errorTitulo = document.getElementById('editErrorTitulo');
+                const mensajeTitulo = document.getElementById('editMensajeTitulo');
+                errorTitulo.classList.remove('hidden');
+                mensajeTitulo.textContent = 'El título ya existe en otra carpeta';
                 return;
             }
+
+            // Validar que la etiqueta no exista en otra carpeta
+            const existeEtiqueta = this.carpetas.some(c => 
+                c.id_carpeta !== id && c.etiqueta_identificadora.toLowerCase() === etiqueta.toLowerCase()
+            );
+            if (existeEtiqueta) {
+                const errorEtiqueta = document.getElementById('editErrorEtiqueta');
+                const mensajeEtiqueta = document.getElementById('editMensajeEtiqueta');
+                errorEtiqueta.classList.remove('hidden');
+                mensajeEtiqueta.textContent = 'La etiqueta ya existe en otra carpeta';
+                return;
+            }
+
+            const datos = {
+                titulo: titulo,
+                etiqueta_identificadora: etiqueta,
+                descripcion: descripcion,
+                estado_gestion: estado
+            };
 
             const resultado = await api.put(`/carpetas/${id}`, datos);
 

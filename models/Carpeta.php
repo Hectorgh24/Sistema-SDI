@@ -122,6 +122,7 @@ class Carpeta
      * 
      * @param array $data Datos de la carpeta
      *   - no_carpeta_fisica (requerido): Número secuencial
+     *   - titulo (requerido): Título de la carpeta
      *   - etiqueta_identificadora (requerido): Código único
      *   - descripcion (opcional)
      *   - estado_gestion (opcional): pendiente, en_revision, archivado, cancelado
@@ -132,7 +133,7 @@ class Carpeta
     public function crear($data)
     {
         try {
-            $required = ['no_carpeta_fisica', 'etiqueta_identificadora', 'creado_por_id'];
+            $required = ['no_carpeta_fisica', 'titulo', 'etiqueta_identificadora', 'creado_por_id'];
             foreach ($required as $field) {
                 if (empty($data[$field])) {
                     throw new \Exception("Campo requerido faltante: $field");
@@ -144,15 +145,23 @@ class Carpeta
                 throw new \Exception("La etiqueta ya existe");
             }
 
+            // Verificar unicidad de título
+            $stmt = $this->db->prepare("SELECT id_carpeta FROM " . self::TABLE . " WHERE titulo = :titulo");
+            $stmt->execute([':titulo' => $data['titulo']]);
+            if ($stmt->fetch(PDO::FETCH_ASSOC)) {
+                throw new \Exception("El título ya existe");
+            }
+
             $this->db->beginTransaction();
 
             $sql = "INSERT INTO " . self::TABLE . "
-                    (no_carpeta_fisica, etiqueta_identificadora, descripcion, estado_gestion, creado_por_id)
-                    VALUES (:no_carpeta, :etiqueta, :descripcion, :estado_gestion, :creado_por_id)";
+                    (no_carpeta_fisica, titulo, etiqueta_identificadora, descripcion, estado_gestion, creado_por_id)
+                    VALUES (:no_carpeta, :titulo, :etiqueta, :descripcion, :estado_gestion, :creado_por_id)";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':no_carpeta'      => (int)$data['no_carpeta_fisica'],
+                ':titulo'          => trim($data['titulo']),
                 ':etiqueta'        => trim($data['etiqueta_identificadora']),
                 ':descripcion'     => trim($data['descripcion'] ?? ''),
                 ':estado_gestion'  => $data['estado_gestion'] ?? 'pendiente',
@@ -188,7 +197,7 @@ class Carpeta
             $updates = [];
             $params = [':id' => $id_carpeta];
 
-            $updatable = ['etiqueta_identificadora', 'descripcion', 'no_carpeta_fisica'];
+            $updatable = ['titulo', 'etiqueta_identificadora', 'descripcion', 'no_carpeta_fisica', 'estado_gestion'];
 
             foreach ($data as $key => $value) {
                 if (in_array($key, $updatable) && $value !== null) {
@@ -200,6 +209,17 @@ class Carpeta
                         $existing->execute([':etiqueta' => $value, ':id' => $id_carpeta]);
                         if ($existing->fetch()) {
                             throw new \Exception("La etiqueta ya existe");
+                        }
+                    }
+
+                    // Validar unicidad de título si se actualiza
+                    if ($key === 'titulo') {
+                        $existing = $this->db->prepare(
+                            "SELECT id_carpeta FROM " . self::TABLE . " WHERE titulo = :titulo AND id_carpeta != :id"
+                        );
+                        $existing->execute([':titulo' => $value, ':id' => $id_carpeta]);
+                        if ($existing->fetch()) {
+                            throw new \Exception("El título ya existe");
                         }
                     }
 

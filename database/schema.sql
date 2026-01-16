@@ -58,6 +58,7 @@ CREATE TABLE usuarios (
 CREATE TABLE carpetas_fisicas (
     id_carpeta INT AUTO_INCREMENT PRIMARY KEY,
     no_carpeta_fisica INT NOT NULL UNIQUE, -- Identificador numérico secuencial físico
+    titulo VARCHAR(150) NOT NULL UNIQUE, -- Título principal de la carpeta
     etiqueta_identificadora VARCHAR(100) NOT NULL UNIQUE, -- Ej: "AUD-2023-A" (Código único de negocio)
     descripcion TEXT NULL,
     estado_gestion ENUM('pendiente', 'en_revision', 'archivado', 'cancelado') DEFAULT 'pendiente',

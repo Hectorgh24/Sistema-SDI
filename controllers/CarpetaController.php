@@ -84,7 +84,7 @@ class CarpetaController
 
             $input = json_decode(file_get_contents('php://input'), true);
 
-            if (!$input || empty($input['etiqueta_identificadora']) || empty($input['no_carpeta_fisica'])) {
+            if (!$input || empty($input['titulo']) || empty($input['etiqueta_identificadora']) || empty($input['no_carpeta_fisica'])) {
                 response(false, 'Datos requeridos faltantes', null, 400);
             }
 
@@ -99,6 +99,7 @@ class CarpetaController
 
             $id_carpeta = $this->carpetaModel->crear([
                 'no_carpeta_fisica'       => $noCarpetaFisica,
+                'titulo'                  => $input['titulo'],
                 'etiqueta_identificadora' => $input['etiqueta_identificadora'],
                 'descripcion'             => $input['descripcion'] ?? '',
                 'estado_gestion'          => $input['estado_gestion'] ?? 'pendiente',
