@@ -109,6 +109,7 @@ class Carpeta
      *   - no_carpeta_fisica (requerido): Número secuencial
      *   - etiqueta_identificadora (requerido): Código único
      *   - descripcion (opcional)
+     *   - estado_gestion (opcional): pendiente, en_revision, archivado, cancelado
      *   - creado_por_id (requerido): ID del usuario
      * 
      * @return int|false ID de la carpeta creada
@@ -131,15 +132,16 @@ class Carpeta
             $this->db->beginTransaction();
 
             $sql = "INSERT INTO " . self::TABLE . "
-                    (no_carpeta_fisica, etiqueta_identificadora, descripcion, creado_por_id)
-                    VALUES (:no_carpeta, :etiqueta, :descripcion, :creado_por_id)";
+                    (no_carpeta_fisica, etiqueta_identificadora, descripcion, estado_gestion, creado_por_id)
+                    VALUES (:no_carpeta, :etiqueta, :descripcion, :estado_gestion, :creado_por_id)";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
-                ':no_carpeta'     => (int)$data['no_carpeta_fisica'],
-                ':etiqueta'       => trim($data['etiqueta_identificadora']),
-                ':descripcion'    => trim($data['descripcion'] ?? ''),
-                ':creado_por_id'  => $data['creado_por_id']
+                ':no_carpeta'      => (int)$data['no_carpeta_fisica'],
+                ':etiqueta'        => trim($data['etiqueta_identificadora']),
+                ':descripcion'     => trim($data['descripcion'] ?? ''),
+                ':estado_gestion'  => $data['estado_gestion'] ?? 'pendiente',
+                ':creado_por_id'   => $data['creado_por_id']
             ]);
 
             $id_carpeta = (int)$this->db->lastInsertId();

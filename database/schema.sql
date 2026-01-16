@@ -58,6 +58,7 @@ CREATE TABLE carpetas_fisicas (
     no_carpeta_fisica INT NOT NULL UNIQUE, -- Identificador numérico secuencial físico
     etiqueta_identificadora VARCHAR(100) NOT NULL UNIQUE, -- Ej: "AUD-2023-A" (Código único de negocio)
     descripcion TEXT NULL,
+    estado_gestion ENUM('pendiente', 'en_revision', 'archivado', 'cancelado') DEFAULT 'pendiente',
     creado_por_id INT NULL,
     fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_carpetas_creador FOREIGN KEY (creado_por_id) REFERENCES usuarios(id_usuario) ON DELETE SET NULL

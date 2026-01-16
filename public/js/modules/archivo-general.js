@@ -153,6 +153,24 @@ const archivoGeneralModule = {
                     ></textarea>
                 </div>
 
+                <!-- Estado de Gestión -->
+                <div>
+                    <label for="estadoGestion" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
+                        <i class="fas fa-clipboard-list mr-2"></i>Estado de Gestión
+                    </label>
+                    <select 
+                        id="estadoGestion" 
+                        name="estado_gestion"
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        style="background-color: var(--card-bg); color: var(--text-primary); border-color: var(--border-color);"
+                    >
+                        <option value="pendiente">Pendiente</option>
+                        <option value="en_revision">En Revisión</option>
+                        <option value="archivado">Archivado</option>
+                        <option value="cancelado">Cancelado</option>
+                    </select>
+                </div>
+
                 <!-- Botones de acción -->
                 <div class="flex gap-4">
                     <button 
@@ -171,11 +189,25 @@ const archivoGeneralModule = {
                 </div>
             </form>
 
-            <!-- Lista de Carpetas Existentes -->
+            <!-- Tabla de Carpetas Existentes -->
             <div class="mt-12">
-                <h2 class="text-2xl font-bold mb-6" style="color: var(--text-primary);">Carpetas Existentes</h2>
-                <div id="listaCarpetas" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    ${await this.renderizarListaCarpetas()}
+                <h2 class="text-2xl font-bold mb-6" style="color: var(--text-primary);">Carpetas Registradas</h2>
+                <div class="overflow-x-auto rounded-lg border" style="border-color: var(--border-color);">
+                    <table class="w-full text-sm" style="background-color: var(--card-bg);">
+                        <thead style="background-color: var(--bg-secondary); border-bottom: 2px solid var(--border-color);">
+                            <tr>
+                                <th class="px-6 py-3 text-left font-semibold" style="color: var(--text-primary);">No. Carpeta</th>
+                                <th class="px-6 py-3 text-left font-semibold" style="color: var(--text-primary);">Etiqueta</th>
+                                <th class="px-6 py-3 text-left font-semibold" style="color: var(--text-primary);">Descripción</th>
+                                <th class="px-6 py-3 text-left font-semibold" style="color: var(--text-primary);">Estado</th>
+                                <th class="px-6 py-3 text-left font-semibold" style="color: var(--text-primary);">Creado Por</th>
+                                <th class="px-6 py-3 text-left font-semibold" style="color: var(--text-primary);">Fecha</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaCarpetas">
+                            ${await this.renderizarTablaCarpetas()}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -189,28 +221,42 @@ const archivoGeneralModule = {
     },
 
     /**
-     * Renderizar lista de carpetas
+     * Renderizar tabla de carpetas
      */
-    async renderizarListaCarpetas() {
+    async renderizarTablaCarpetas() {
         if (this.carpetas.length === 0) {
-            return '<p style="color: var(--text-secondary); grid-column: 1/-1;">No hay carpetas registradas</p>';
+            return '<tr><td colspan="6" class="px-6 py-4 text-center" style="color: var(--text-secondary);">No hay carpetas registradas</td></tr>';
         }
 
-        return this.carpetas.map(carpeta => `
-            <div class="border rounded-lg p-4 hover:shadow-lg transition" style="background-color: var(--bg-secondary); border-color: var(--border-color);">
-                <div class="flex items-start justify-between">
-                    <div class="flex-1">
-                        <h3 class="font-bold text-lg mb-2" style="color: var(--text-primary);">
-                            <i class="fas fa-folder mr-2"></i>${carpeta.etiqueta_identificadora}
-                        </h3>
-                        <p class="text-sm mb-2" style="color: var(--text-secondary);">
-                            <strong>No:</strong> ${carpeta.no_carpeta_fisica}
-                        </p>
-                        ${carpeta.descripcion ? `<p class="text-sm" style="color: var(--text-secondary);">${carpeta.descripcion}</p>` : ''}
-                    </div>
-                </div>
-            </div>
-        `).join('');
+        return this.carpetas.map(carpeta => {
+            const estado = carpeta.estado_gestion || 'pendiente';
+            const coloresEstado = {
+                'pendiente': { bg: '#fef3c7', text: '#92400e' },
+                'en_revision': { bg: '#dbeafe', text: '#1e40af' },
+                'archivado': { bg: '#e5e7eb', text: '#374151' },
+                'cancelado': { bg: '#fee2e2', text: '#991b1b' }
+            };
+            const colores = coloresEstado[estado] || coloresEstado['pendiente'];
+            const fechaFormato = new Date(carpeta.fecha_creacion).toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
+            const nombreCreador = carpeta.nombre ? `${carpeta.nombre} ${carpeta.apellido_paterno || ''}` : 'Sistema';
+
+            return `
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td class="px-6 py-4" style="color: var(--text-primary);"><strong>${carpeta.no_carpeta_fisica}</strong></td>
+                    <td class="px-6 py-4" style="color: var(--text-primary);">
+                        <i class="fas fa-folder mr-2" style="color: #3b82f6;"></i>${carpeta.etiqueta_identificadora}
+                    </td>
+                    <td class="px-6 py-4" style="color: var(--text-secondary);">${carpeta.descripcion || '-'}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold" style="background-color: ${colores.bg}; color: ${colores.text};">
+                            ${estado.replace('_', ' ').toUpperCase()}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4" style="color: var(--text-secondary);">${nombreCreador}</td>
+                    <td class="px-6 py-4" style="color: var(--text-secondary);">${fechaFormato}</td>
+                </tr>
+            `;
+        }).join('');
     },
 
     /**
@@ -221,7 +267,8 @@ const archivoGeneralModule = {
             const datos = {
                 no_carpeta_fisica: formData.get('no_carpeta_fisica'),
                 etiqueta_identificadora: formData.get('etiqueta_identificadora'),
-                descripcion: formData.get('descripcion')
+                descripcion: formData.get('descripcion'),
+                estado_gestion: formData.get('estado_gestion') || 'pendiente'
             };
 
             // Validar que la etiqueta no exista
@@ -237,10 +284,10 @@ const archivoGeneralModule = {
                 ui.toast('Carpeta creada exitosamente', 'success');
                 // Recargar carpetas
                 await this.cargarCarpetas();
-                // Actualizar lista
-                const listaCarpetas = document.getElementById('listaCarpetas');
-                if (listaCarpetas) {
-                    listaCarpetas.innerHTML = await this.renderizarListaCarpetas();
+                // Actualizar tabla
+                const tablaCarpetas = document.getElementById('tablaCarpetas');
+                if (tablaCarpetas) {
+                    tablaCarpetas.innerHTML = await this.renderizarTablaCarpetas();
                 }
                 // Limpiar formulario
                 document.getElementById('formCarpeta').reset();

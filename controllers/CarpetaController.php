@@ -92,6 +92,7 @@ class CarpetaController
                 'no_carpeta_fisica'       => $input['no_carpeta_fisica'],
                 'etiqueta_identificadora' => $input['etiqueta_identificadora'],
                 'descripcion'             => $input['descripcion'] ?? '',
+                'estado_gestion'          => $input['estado_gestion'] ?? 'pendiente',
                 'creado_por_id'           => Autenticacion::getId()
             ]);
 
