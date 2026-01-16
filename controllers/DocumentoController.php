@@ -91,6 +91,40 @@ class DocumentoController
      * Obtener documento por ID
      * GET /api/documentos/:id
      */
+    /**
+     * Obtener documentos por carpeta
+     * GET /api/documentos/por-carpeta/:id_carpeta
+     */
+    public function porCarpeta($id_carpeta)
+    {
+        try {
+            Autenticacion::requerirAutenticacion();
+
+            $id_carpeta = (int)$id_carpeta;
+
+            if ($id_carpeta <= 0) {
+                response(false, 'ID de carpeta inválido', null, 400);
+            }
+
+            // Verificar que la carpeta existe
+            if (!$this->carpetaModel->obtenerPorId($id_carpeta)) {
+                response(false, 'Carpeta no encontrada', null, 404);
+            }
+
+            // Obtener documentos de la carpeta
+            $documentos = $this->documentoModel->listarPorCarpeta($id_carpeta);
+
+            response(true, 'Documentos obtenidos', $documentos, 200);
+
+        } catch (\Exception $e) {
+            logger("Error obteniendo documentos por carpeta: " . $e->getMessage(), 'ERROR');
+            response(false, $e->getMessage(), null, 400);
+        }
+    }
+
+    /**
+     * Obtener documento por ID
+     */
     public function obtener($id)
     {
         try {
@@ -147,7 +181,7 @@ class DocumentoController
     }
 
     /**
-     * Crear documento desde JSON
+     * Crear documento desde JSON (REFACTORIZADO - SIMPLE)
      * @private
      */
     private function crearDocumentoJSON()
@@ -158,45 +192,52 @@ class DocumentoController
             response(false, 'Datos inválidos', null, 400);
         }
 
-        // Validaciones
-        if (empty($input['id_categoria'])) {
-            response(false, 'Categoría requerida', null, 400);
+        // Validaciones de campos requeridos
+        $camposRequeridos = ['no_oficio', 'id_carpeta', 'emitido_por', 'fecha_oficio', 'descripcion', 'capturado_por'];
+        foreach ($camposRequeridos as $campo) {
+            if (empty($input[$campo]) && $input[$campo] !== '0') {
+                response(false, "Campo requerido: $campo", null, 400);
+            }
         }
 
-        if (empty($input['id_carpeta'])) {
-            response(false, 'Carpeta requerida', null, 400);
-        }
-
-        if (empty($input['fecha_documento'])) {
-            response(false, 'Fecha del documento requerida', null, 400);
-        }
-
-        // Verificar que la categoría y carpeta existan
-        if (!$this->categoriaModel->obtenerPorId($input['id_categoria'])) {
-            response(false, 'Categoría inválida', null, 400);
-        }
-
-        if (!$this->carpetaModel->obtenerPorId($input['id_carpeta'])) {
+        // Validar que la carpeta exista
+        if (!$this->carpetaModel->obtenerPorId((int)$input['id_carpeta'])) {
             response(false, 'Carpeta inválida', null, 400);
         }
 
+        // Validar unicidad de No. Oficio
+        $existente = $this->documentoModel->obtenerPorNumeroOficio($input['no_oficio']);
+        if ($existente) {
+            response(false, 'El número de oficio ya existe', null, 400);
+        }
+
+        // Validar fecha de oficio no sea en el futuro
+        $hoy = date('Y-m-d');
+        if ($input['fecha_oficio'] > $hoy) {
+            response(false, 'La fecha del oficio no puede ser en el futuro', null, 400);
+        }
+
         // Crear documento
-        $id_documento = $this->documentoModel->crear([
-            'id_categoria'      => $input['id_categoria'],
-            'id_carpeta'        => $input['id_carpeta'],
-            'id_usuario_captura' => Autenticacion::getId(),
-            'fecha_documento'   => $input['fecha_documento'],
-            'valores'           => $input['valores'] ?? []
+        $id_documento = $this->documentoModel->crearDocumentoSimple([
+            'no_oficio'              => trim($input['no_oficio']),
+            'id_carpeta'             => (int)$input['id_carpeta'],
+            'auditoria'              => trim($input['auditoria'] ?? ''),
+            'emitido_por'            => trim($input['emitido_por']),
+            'fecha_oficio'           => $input['fecha_oficio'],
+            'fecha_archivo'          => date('Y-m-d'), // Automático
+            'descripcion'            => trim($input['descripcion']),
+            'capturado_por'          => trim($input['capturado_por']),
+            'id_usuario_captura'     => Autenticacion::getId()
         ]);
 
         if (!$id_documento) {
             response(false, 'Error al crear documento', null, 500);
         }
 
-        $documento = $this->documentoModel->obtenerPorId($id_documento);
+        $documento = $this->documentoModel->obtenerDocumentoSimple($id_documento);
 
-        logger("Documento creado: ID $id_documento", 'INFO');
-        response(true, 'Documento creado', $documento, 201);
+        logger("Documento creado: ID $id_documento, No. Oficio: {$input['no_oficio']}", 'INFO');
+        response(true, 'Documento registrado correctamente', $documento, 201);
     }
 
     /**

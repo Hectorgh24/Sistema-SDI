@@ -614,5 +614,215 @@ class Documento
 
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
+
+    /**
+     * ============================================================================
+     * MÉTODOS SIMPLIFICADOS PARA DOCUMENTOS (REFACTORIZACIÓN)
+     * Siguen el mismo patrón que el módulo de Carpetas
+     * ============================================================================
+     */
+
+    /**
+     * Crear documento simplificado (sin modelo EAV)
+     * 
+     * @param array $data Datos del documento
+     * @return int|false ID del documento creado o false
+     */
+    public function crearDocumentoSimple($data)
+    {
+        try {
+            // Validar campos requeridos
+            $required = ['no_oficio', 'id_carpeta', 'emitido_por', 'fecha_oficio', 'descripcion', 'capturado_por', 'id_usuario_captura'];
+            foreach ($required as $field) {
+                if (empty($data[$field]) && $data[$field] !== '0') {
+                    throw new \Exception("Campo requerido faltante: $field");
+                }
+            }
+
+            // Usar tabla registros_documentos con estructura simplificada
+            $sql = "INSERT INTO " . self::TABLE_REGISTROS . " 
+                    (id_categoria, id_carpeta, id_usuario_captura, fecha_documento, 
+                     estado_gestion, estado_respaldo_digital, fecha_sistema_creacion)
+                    VALUES (:id_categoria, :id_carpeta, :id_usuario, :fecha_documento, :estado, :respaldo, NOW())";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                ':id_categoria'      => 1, // ID de categoría 'Auditoría'
+                ':id_carpeta'        => (int)$data['id_carpeta'],
+                ':id_usuario'        => (int)$data['id_usuario_captura'],
+                ':fecha_documento'   => $data['fecha_oficio'],
+                ':estado'            => 'pendiente',
+                ':respaldo'          => 'sin_respaldo'
+            ]);
+
+            $id_documento = (int)$this->db->lastInsertId();
+
+            // Guardar valores dinámicos en detalles_valores_documento
+            $this->guardarValoresDocumento($id_documento, $data);
+
+            logger("Documento simple creado: ID $id_documento", 'INFO');
+            return $id_documento;
+
+        } catch (PDOException $e) {
+            $this->db->rollBack();
+            logger("Error PDO creando documento: " . $e->getMessage(), 'ERROR');
+            return false;
+        } catch (\Exception $e) {
+            logger("Error validación documento: " . $e->getMessage(), 'WARNING');
+            throw $e;
+        }
+    }
+
+    /**
+     * Guardar valores dinámicos del documento
+     * 
+     * @param int $id_documento ID del documento
+     * @param array $data Datos con valores a guardar
+     */
+    private function guardarValoresDocumento($id_documento, $data)
+    {
+        // Mapeo de campos a IDs de columna de la categoría Auditoría (id_categoria=1)
+        $mapeo = [
+            'no_oficio'     => 1, // No. Oficio
+            'auditoria'     => 3, // Nombre Auditoría
+            'emitido_por'   => 4, // Emitido Por
+            'descripcion'   => 5, // Descripción Asunto
+            'capturado_por' => 6  // Comentarios Adicionales (usamos para Capturado Por)
+        ];
+
+        $sql = "INSERT INTO " . self::TABLE_DETALLES . " 
+                (id_registro, id_columna, valor_texto)
+                VALUES (:id_registro, :id_columna, :valor)";
+
+        $stmt = $this->db->prepare($sql);
+
+        foreach ($mapeo as $campo => $id_columna) {
+            if (isset($data[$campo]) && !empty($data[$campo])) {
+                try {
+                    $stmt->execute([
+                        ':id_registro'  => $id_documento,
+                        ':id_columna'   => $id_columna,
+                        ':valor'        => trim((string)$data[$campo])
+                    ]);
+                } catch (PDOException $e) {
+                    logger("Error guardando valor $campo: " . $e->getMessage(), 'WARNING');
+                }
+            }
+        }
+    }
+
+    /**
+     * Obtener documento simplificado por ID
+     * 
+     * @param int $id_documento ID del documento
+     * @return array|null Documento con valores
+     */
+    public function obtenerDocumentoSimple($id_documento)
+    {
+        try {
+            // Obtener registro principal
+            $sql = "SELECT rd.*, 
+                           cc.nombre_categoria, 
+                           cf.etiqueta_identificadora, cf.no_carpeta_fisica,
+                           u.nombre, u.apellido_paterno, u.apellido_materno
+                    FROM " . self::TABLE_REGISTROS . " rd
+                    JOIN cat_categorias cc ON rd.id_categoria = cc.id_categoria
+                    JOIN carpetas_fisicas cf ON rd.id_carpeta = cf.id_carpeta
+                    JOIN usuarios u ON rd.id_usuario_captura = u.id_usuario
+                    WHERE rd.id_registro = :id";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':id' => $id_documento]);
+            $documento = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$documento) {
+                return null;
+            }
+
+            // Obtener valores dinámicos
+            $sqlValores = "SELECT cc.nombre_campo, dvd.valor_texto, dvd.valor_fecha
+                          FROM " . self::TABLE_DETALLES . " dvd
+                          JOIN conf_columnas_categoria cc ON dvd.id_columna = cc.id_columna
+                          WHERE dvd.id_registro = :id_registro";
+
+            $stmt = $this->db->prepare($sqlValores);
+            $stmt->execute([':id_registro' => $id_documento]);
+            $valores = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+
+            // Agregar valores al documento
+            $documento['valores'] = $valores;
+
+            return $documento;
+
+        } catch (PDOException $e) {
+            logger("Error obteniendo documento simple: " . $e->getMessage(), 'ERROR');
+            return null;
+        }
+    }
+
+    /**
+     * Obtener documento por número de oficio
+     * 
+     * @param string $no_oficio Número de oficio
+     * @return array|null
+     */
+    public function obtenerPorNumeroOficio($no_oficio)
+    {
+        try {
+            $sql = "SELECT dvd.valor_texto
+                    FROM " . self::TABLE_DETALLES . " dvd
+                    WHERE dvd.id_columna = 1 AND dvd.valor_texto = :no_oficio
+                    LIMIT 1";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':no_oficio' => trim($no_oficio)]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+
+        } catch (PDOException $e) {
+            logger("Error buscando por número de oficio: " . $e->getMessage(), 'ERROR');
+            return null;
+        }
+    }
+
+    /**
+     * Listar documentos simplificados por carpeta
+     * 
+     * @param int $id_carpeta ID de la carpeta
+     * @param array $filtros Filtros adicionales
+     * @param int $limit Límite de registros
+     * @return array Arreglo de documentos
+     */
+    public function listarPorCarpeta($id_carpeta, $filtros = [], $limit = 100)
+    {
+        try {
+            $sql = "SELECT rd.id_registro, rd.fecha_documento, rd.estado_gestion,
+                           cf.etiqueta_identificadora, cf.no_carpeta_fisica,
+                           u.nombre, u.apellido_paterno
+                    FROM " . self::TABLE_REGISTROS . " rd
+                    JOIN carpetas_fisicas cf ON rd.id_carpeta = cf.id_carpeta
+                    JOIN usuarios u ON rd.id_usuario_captura = u.id_usuario
+                    WHERE rd.id_carpeta = :id_carpeta";
+
+            if (!empty($filtros['estado_gestion'])) {
+                $sql .= " AND rd.estado_gestion = :estado";
+            }
+
+            $sql .= " ORDER BY rd.fecha_sistema_creacion DESC LIMIT :limit";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':id_carpeta', (int)$id_carpeta);
+            if (!empty($filtros['estado_gestion'])) {
+                $stmt->bindValue(':estado', $filtros['estado_gestion']);
+            }
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        } catch (PDOException $e) {
+            logger("Error listando documentos por carpeta: " . $e->getMessage(), 'ERROR');
+            return [];
+        }
+    }
 }
 ?>

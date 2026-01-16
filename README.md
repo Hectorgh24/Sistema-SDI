@@ -82,10 +82,10 @@ Contraseña: admin123
 
 | Documento | Para quién | Tiempo |
 |-----------|-----------|--------|
-| **GUIA_RAPIDA.md** | Usuarios finales | 10-15 min |
-| **DOCUMENTACION_TECNICA.md** | Desarrolladores | 30-45 min |
-| **CHECKLIST_DEPLOYMENT.md** | Admin IT | 20-30 min |
-| **GUIA_DESARROLLO.md** | Desarrolladores | 20-30 min |
+| **[DOCUMENTACION_COMPLETA.md](DOCUMENTACION_COMPLETA.md)** | Todo el equipo | 45 min |
+| **[INICIO_RAPIDO.md](INICIO_RAPIDO.md)** | Usuarios nuevos | 5 min |
+| **[GUIA_DESARROLLO.md](GUIA_DESARROLLO.md)** | Desarrolladores | 30 min |
+| **[GUIA_MODULOS.md](GUIA_MODULOS.md)** | Desarrolladores | 20 min |
 
 ---
 

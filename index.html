@@ -332,16 +332,22 @@
          * Cerrar sesión
          */
         async function cerrarSesion() {
-            if (confirm('¿Desea cerrar sesión?')) {
-                try {
-                    await auth.logout();
-                    window.location.href = '/Programa-Gestion-SDI/login.html';
-                } catch (error) {
-                    console.error('Error al cerrar sesión:', error);
-                    // Redirigir de todas formas
-                    window.location.href = '/Programa-Gestion-SDI/login.html';
-                }
-            }
+            // Usar confirmación centrada tipo toast en lugar del confirm del navegador
+            ui.confirmToast(
+                '¿Desea cerrar sesión?',
+                async () => {
+                    try {
+                        await auth.logout();
+                        // La redirección se maneja en auth.logout()
+                    } catch (error) {
+                        console.error('Error al cerrar sesión:', error);
+                        // Redirigir de todas formas
+                        window.location.href = '/Programa-Gestion-SDI/login.html';
+                    }
+                },
+                null,
+                'logout'
+            );
         }
 
         /**

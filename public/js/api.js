@@ -22,13 +22,15 @@ const api = {
             timestamp: new Date().toISOString()
         };
 
-        if (response) {
+        if (response && response.headers && typeof response.headers.entries === 'function') {
             errorInfo.response = {
                 status: response.status,
                 statusText: response.statusText,
                 url: response.url,
                 headers: Object.fromEntries(response.headers.entries())
             };
+        } else if (response) {
+            errorInfo.response = response;
         }
 
         console.error('[API Error]', errorInfo);
@@ -68,6 +70,10 @@ const api = {
         let jsonData;
         try {
             jsonData = JSON.parse(responseText);
+            // Validar que el objeto tenga la estructura esperada
+            if (typeof jsonData !== 'object' || jsonData === null) {
+                throw new Error('La respuesta no es un objeto válido');
+            }
         } catch (parseError) {
             // Si no es JSON válido, loggear el contenido
             console.error('[API] Error parseando JSON:', {
@@ -146,13 +152,14 @@ const api = {
      * Realizar petición POST
      */
     async post(endpoint, data = {}) {
+        let response = null;
         try {
             const url = this.baseURL + endpoint;
             const body = JSON.stringify(data);
             
             console.log(`[API] POST ${url}`, data);
             
-            const response = await fetch(url, {
+            response = await fetch(url, {
                 method: 'POST',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
@@ -162,7 +169,7 @@ const api = {
             return await this._processResponse(response, endpoint, 'POST');
             
         } catch (error) {
-            this._logError(`POST ${endpoint}`, error, { data });
+            this._logError(`POST ${endpoint}`, error, response);
             
             // Si es un error de red
             if (error instanceof TypeError && error.message.includes('fetch')) {

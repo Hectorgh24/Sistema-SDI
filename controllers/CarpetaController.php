@@ -84,17 +84,29 @@ class CarpetaController
 
             $input = json_decode(file_get_contents('php://input'), true);
 
-            if (!$input || empty($input['titulo']) || empty($input['etiqueta_identificadora']) || empty($input['no_carpeta_fisica'])) {
-                response(false, 'Datos requeridos faltantes', null, 400);
+            if (!$input || empty($input['titulo']) || empty($input['etiqueta_identificadora'])) {
+                response(false, 'Datos requeridos faltantes (título y etiqueta)', null, 400);
             }
 
-            // VALIDACIÓN: Verificar que el número de carpeta sea el correcto (próximo secuencial)
-            $noCarpetaFisica = (int)$input['no_carpeta_fisica'];
-            $carpetaMaxima = $this->carpetaModel->obtenerMaximoCarpeta();
-            $siguienteCarpeta = ($carpetaMaxima === null) ? 1 : $carpetaMaxima + 1;
+            // VALIDACIÓN: Calcular automáticamente el número de carpeta si no viene correcto
+            $noCarpetaFisica = isset($input['no_carpeta_fisica']) ? (int)$input['no_carpeta_fisica'] : null;
+            $estadoGestion = $input['estado_gestion'] ?? 'pendiente';
             
-            if ($noCarpetaFisica !== $siguienteCarpeta) {
-                response(false, "Número de carpeta inválido. El número debe ser $siguienteCarpeta", null, 400);
+            // Estados que requieren numeración secuencial estricta
+            $estadosConSecuencial = ['pendiente', 'en_revision'];
+            
+            if (in_array($estadoGestion, $estadosConSecuencial)) {
+                // Si no viene un número válido, calcularlo automáticamente
+                if (!$noCarpetaFisica || $noCarpetaFisica <= 0) {
+                    $carpetaMaxima = $this->carpetaModel->obtenerMaximoCarpeta();
+                    $noCarpetaFisica = ($carpetaMaxima === null) ? 1 : $carpetaMaxima + 1;
+                    logger("Número de carpeta calculado automáticamente: $noCarpetaFisica", 'INFO');
+                }
+            } else {
+                // Para estados 'cancelado' y 'archivado', permitir cualquier número positivo
+                if (!$noCarpetaFisica || $noCarpetaFisica <= 0) {
+                    response(false, "Número de carpeta inválido. Debe ser un número positivo", null, 400);
+                }
             }
 
             $id_carpeta = $this->carpetaModel->crear([

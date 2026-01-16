@@ -84,6 +84,62 @@ $ruta = trim($ruta, '/');
 
 logger("Ruta limpia después de procesamiento: '$ruta'", 'DEBUG');
 
+// ============================================================================
+// SERVIR ARCHIVOS ESTÁTICOS
+// ============================================================================
+// Si la ruta no comienza con 'api', intentar servir archivo estático
+if (strpos($ruta, 'api') !== 0) {
+    // Archivos permitidos
+    $extensionesPermitidas = ['html', 'css', 'js', 'jpg', 'jpeg', 'png', 'gif', 'svg', 'woff', 'woff2', 'ttf', 'php'];
+    $partesRuta = explode('.', $ruta);
+    $extension = end($partesRuta);
+    
+    if (in_array($extension, $extensionesPermitidas)) {
+        $rutaArchivo = __DIR__ . '/' . $ruta;
+        
+        // Prevenir directory traversal
+        $rutaReal = realpath($rutaArchivo);
+        $rutaBase = realpath(__DIR__);
+        
+        if ($rutaReal && strpos($rutaReal, $rutaBase) === 0 && file_exists($rutaReal)) {
+            if ($extension === 'php') {
+                // Ejecutar PHP
+                include $rutaReal;
+            } else {
+                // Establecer tipo MIME correcto
+                $mimeTypes = [
+                    'html' => 'text/html',
+                    'css'  => 'text/css',
+                    'js'   => 'application/javascript',
+                    'json' => 'application/json',
+                    'jpg'  => 'image/jpeg',
+                    'jpeg' => 'image/jpeg',
+                    'png'  => 'image/png',
+                    'gif'  => 'image/gif',
+                    'svg'  => 'image/svg+xml',
+                    'woff' => 'font/woff',
+                    'woff2' => 'font/woff2',
+                    'ttf'  => 'font/ttf'
+                ];
+                
+                header('Content-Type: ' . ($mimeTypes[$extension] ?? 'text/plain'));
+                readfile($rutaReal);
+            }
+            exit;
+        }
+    }
+    
+    // Si es raíz, servir index.html
+    if (empty($ruta)) {
+        $rutaArchivo = __DIR__ . '/index.html';
+        if (file_exists($rutaArchivo)) {
+            header('Content-Type: text/html');
+            readfile($rutaArchivo);
+            exit;
+        }
+    }
+}
+
 // Si está vacío, es la raíz
 if (empty($ruta)) {
     $ruta = 'inicio';
