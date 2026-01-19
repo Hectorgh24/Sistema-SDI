@@ -193,7 +193,9 @@ class Router
             'documentos' => 'DocumentoController',
             'carpetas'   => 'CarpetaController',
             'categorias' => 'CategoriaController',
-            'dashboard'  => 'DashboardController'
+            'dashboard'  => 'DashboardController',
+            'conversion' => 'ConversionController',
+            'professional' => 'ProfessionalConversionController'
         ];
 
         // Determinar controlador
@@ -209,10 +211,14 @@ class Router
         if (!empty($partes[2]) && is_numeric($partes[2])) {
             $this->parametros[] = (int)$partes[2];
             logger("ROUTER: Parámetro ID extraído: " . $partes[2], 'DEBUG');
+        } else if ($modulo === 'documentos' && $partes[2] === 'por-carpeta' && !empty($partes[3])) {
+            // Caso especial: /api/documentos/por-carpeta/:id
+            $this->parametros[] = (int)$partes[3];
+            logger("ROUTER: Parámetro ID de carpeta extraído: " . $partes[3], 'DEBUG');
         }
 
         // Parámetro adicional (acción)
-        if (!empty($partes[3])) {
+        if (!empty($partes[3]) && $modulo !== 'documentos') {
             $this->parametros[] = $partes[3];
             logger("ROUTER: Parámetro adicional extraído: " . $partes[3], 'DEBUG');
         }
@@ -225,6 +231,31 @@ class Router
     {
         $metodo = $partes[2] ?? '';
         $httpMethod = $_SERVER['REQUEST_METHOD'];
+
+        // Casos especiales para endpoints personalizados
+        if ($modulo === 'documentos' && $metodo === 'por-carpeta') {
+            return 'porCarpeta';
+        }
+        
+        // Caso especial para conversión
+        if ($modulo === 'conversion' && $metodo === 'convertir') {
+            return 'convertir';
+        }
+        
+        // Caso especial para conversión profesional
+        if ($modulo === 'professional' && $metodo === 'word-to-pdf-puppeteer') {
+            return 'wordToPdfWithPuppeteer';
+        }
+        
+        // Caso especial para verificar disponibilidad de Puppeteer
+        if ($modulo === 'professional' && $metodo === 'check-puppeteer') {
+            return 'checkPuppeteerAvailability';
+        }
+        
+        // Caso especial para instalar Puppeteer
+        if ($modulo === 'professional' && $metodo === 'install-puppeteer') {
+            return 'installPuppeteer';
+        }
 
         // Métodos por defecto según verbo HTTP
         if (empty($metodo) || is_numeric($metodo)) {

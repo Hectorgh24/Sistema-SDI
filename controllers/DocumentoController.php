@@ -193,7 +193,7 @@ class DocumentoController
         }
 
         // Validaciones de campos requeridos
-        $camposRequeridos = ['no_oficio', 'id_carpeta', 'emitido_por', 'fecha_oficio', 'descripcion', 'capturado_por'];
+        $camposRequeridos = ['no_oficio', 'id_carpeta', 'emitido_por', 'fecha_documento', 'descripcion', 'capturado_por'];
         foreach ($camposRequeridos as $campo) {
             if (empty($input[$campo]) && $input[$campo] !== '0') {
                 response(false, "Campo requerido: $campo", null, 400);
@@ -213,7 +213,7 @@ class DocumentoController
 
         // Validar fecha de oficio no sea en el futuro
         $hoy = date('Y-m-d');
-        if ($input['fecha_oficio'] > $hoy) {
+        if ($input['fecha_documento'] > $hoy) {
             response(false, 'La fecha del oficio no puede ser en el futuro', null, 400);
         }
 
@@ -223,7 +223,7 @@ class DocumentoController
             'id_carpeta'             => (int)$input['id_carpeta'],
             'auditoria'              => trim($input['auditoria'] ?? ''),
             'emitido_por'            => trim($input['emitido_por']),
-            'fecha_oficio'           => $input['fecha_oficio'],
+            'fecha_documento'        => $input['fecha_documento'],
             'fecha_archivo'          => date('Y-m-d'), // Automático
             'descripcion'            => trim($input['descripcion']),
             'capturado_por'          => trim($input['capturado_por']),

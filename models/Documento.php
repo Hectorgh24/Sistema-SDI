@@ -795,6 +795,7 @@ class Documento
     public function listarPorCarpeta($id_carpeta, $filtros = [], $limit = 100)
     {
         try {
+            // Obtener documentos básicos
             $sql = "SELECT rd.id_registro, rd.fecha_documento, rd.estado_gestion,
                            cf.etiqueta_identificadora, cf.no_carpeta_fisica,
                            u.nombre, u.apellido_paterno
@@ -817,7 +818,14 @@ class Documento
             $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
 
             $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $documentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Para cada documento, obtener sus valores dinámicos
+            foreach ($documentos as &$documento) {
+                $documento['valores'] = $this->obtenerValoresDinamicos($documento['id_registro']);
+            }
+
+            return $documentos;
 
         } catch (PDOException $e) {
             logger("Error listando documentos por carpeta: " . $e->getMessage(), 'ERROR');

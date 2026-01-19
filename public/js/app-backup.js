@@ -714,37 +714,6 @@ async function optimizarSistema() {
 /**
  * Limpiar sistema
  */
-async function limpiarSistema() {
-    console.log('[SISTEMA] Iniciando limpieza...');
-    mostrarToastHerramientas('Limpiando sistema...', 'info');
-    
-    setTimeout(() => {
-        mostrarToastHerramientas('Sistema limpiado correctamente', 'success');
-    }, 1000);
-}
-
-/**
- * Descargar archivo convertido
- */
-function descargarArchivoConvertido(datos) {
-    try {
-        console.log('[DESCARGA] Iniciando descarga del archivo convertido');
-        console.log('[DESCARGA] Datos recibidos:', {
-            nombre: datos.nombre,
-            mime_type: datos.mime_type,
-            tamaño_contenido: datos.contenido ? datos.contenido.length : 0
-        });
-        
-        // Validar que exista el contenido
-        if (!datos.contenido) {
-            console.error('[DESCARGA] Error: No hay contenido en los datos recibidos');
-            mostrarToastHerramientas('Error: No hay contenido para descargar', 'error');
-            return;
-        }
-        
-        // Decodificar contenido base64
-        let contenido;
-        try {
             contenido = atob(datos.contenido);
             console.log('[DESCARGA] Contenido decodificado exitosamente, longitud:', contenido.length);
         } catch (error) {
@@ -1096,95 +1065,6 @@ async function cargarArchivoGeneral() {
 
 function eliminarUsuario(id) {
     usuariosModule.eliminarUsuario(id, 'Usuario');
-}
-
-/**
- * Convertir archivo (SISTEMA PROFESIONAL ÚNICAMENTE)
- */
-async function convertirArchivo() {
-    console.log('[CONVERSIÓN] Iniciando proceso de conversión profesional...');
-    
-    const archivoInput = document.getElementById('archivoInput');
-    const formatoDestino = document.getElementById('formatoDestino').value;
-    
-    // Validar archivo
-    if (!archivoInput || !archivoInput.files || !archivoInput.files.length) {
-        mostrarToastHerramientas('Por favor selecciona un archivo', 'error');
-        return;
-    }
-    
-    const archivo = archivoInput.files[0];
-    
-    // Validar tamaño (50MB máximo)
-    const maxSize = 50 * 1024 * 1024;
-    if (archivo.size > maxSize) {
-        mostrarToastHerramientas('El archivo es demasiado grande. Máximo 50MB', 'error');
-        return;
-    }
-    
-    // Validar formato de destino
-    if (!formatoDestino) {
-        mostrarToastHerramientas('Por favor selecciona un formato de destino', 'error');
-        return;
-    }
-    
-    // VERIFICAR QUE SEA WORD A PDF - ÚNICA CONVERSIÓN SOPORTADA
-    const isWordFile = archivo.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-                       archivo.type === 'application/msword';
-    
-    if (!isWordFile) {
-        mostrarToastHerramientas('Sistema profesional solo soporta archivos Word (.docx, .doc)', 'error');
-        return;
-    }
-    
-    if (formatoDestino !== 'pdf') {
-        mostrarToastHerramientas('Sistema profesional solo convierte Word a PDF', 'error');
-        return;
-    }
-    
-    if (!professionalConverter) {
-        mostrarToastHerramientas('Error: Sistema profesional no inicializado. Ejecuta instalacion-dependencias.bat', 'error');
-        return;
-    }
-    
-    // USAR SISTEMA PROFESIONAL ÚNICAMENTE
-    await convertirWordProfesional(archivo);
-}
-
-/**
- * Convertir Word a PDF con sistema profesional (SIN FALLBACK)
- */
-async function convertirWordProfesional(archivo) {
-    const btnConvertir = document.getElementById('btnConvertir');
-    const btnTexto = document.getElementById('btnTexto');
-    const btnIcono = document.getElementById('btnIcono');
-    
-    // Mostrar estado de procesando
-    btnConvertir.disabled = true;
-    btnTexto.textContent = 'Convirtiendo...';
-    btnIcono.className = 'fas fa-spinner fa-spin';
-    document.getElementById('infoEstado').textContent = 'Convirtiendo con sistema profesional...';
-    
-    try {
-        await professionalConverter.convertWordToPDF(archivo);
-        
-        // Actualizar estado
-        document.getElementById('infoEstado').textContent = 'Conversión profesional completada';
-        mostrarToastHerramientas('✅ Documento convertido exitosamente', 'success');
-        
-    } catch (error) {
-        console.error('[CONVERSIÓN] Error en conversión profesional:', error);
-        document.getElementById('infoEstado').textContent = 'Error en conversión profesional';
-        
-        // Mensaje de error específico sin fallback
-        mostrarToastHerramientas('❌ Error en conversión profesional. Verifica que ejecutaste instalacion-dependencias.bat', 'error');
-        
-    } finally {
-        // Restaurar estado
-        btnConvertir.disabled = false;
-        btnTexto.textContent = 'Convertir Archivo';
-        btnIcono.className = 'fas fa-sync-alt';
-    }
 }
 function mostrarFormularioNuevoDocumento() { ui.toast('Funcionalidad en desarrollo', 'info'); }
 function verDocumento() { ui.toast('Funcionalidad en desarrollo', 'info'); }

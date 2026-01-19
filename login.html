@@ -6,8 +6,147 @@
     <title>Iniciar Sesión - SDI Gestión Documental</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Variables CSS para modo día (por defecto) */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f9fafb;
+            --bg-tertiary: #f3f4f6;
+            --text-primary: #111827;
+            --text-secondary: #374151;
+            --text-tertiary: #6b7280;
+            --border-color: #d1d5db;
+            --card-bg: #ffffff;
+            --icon-color: #374151;
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Variables CSS para modo noche */
+        [data-theme="dark"] {
+            --bg-primary: #202020;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: #d4d4d4;
+            --text-tertiary: #a3a3a3;
+            --border-color: #3d3d3d;
+            --card-bg: #2d2d2d;
+            --icon-color: #d4d4d4;
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Aplicar variables a elementos */
+        body {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Toggle de tema flotante circular */
+        .theme-toggle-float {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .theme-toggle-float:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .theme-toggle-float:active {
+            transform: scale(0.95);
+        }
+
+        .theme-toggle-float i {
+            color: white;
+            font-size: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        [data-theme="dark"] .theme-toggle-float {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+        }
+
+        [data-theme="dark"] .theme-toggle-float i {
+            color: #202020;
+        }
+
+        /* Cards y contenedores */
+        .bg-white {
+            background-color: var(--card-bg) !important;
+        }
+
+        .text-gray-800, .text-gray-700, .text-gray-600 {
+            color: var(--text-primary) !important;
+        }
+
+        .text-gray-500 {
+            color: var(--text-secondary) !important;
+        }
+
+        .border-gray-200, .border-gray-300 {
+            border-color: var(--border-color) !important;
+        }
+
+        /* Input fields */
+        input[type="email"], input[type="password"], input[type="checkbox"] {
+            background-color: var(--card-bg) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border-color) !important;
+        }
+
+        /* Labels */
+        label {
+            color: var(--text-primary) !important;
+        }
+
+        /* Transiciones suaves */
+        * {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        /* Toast Container para Login - Simple y centrado */
+        #loginToastContainer {
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .theme-toggle-float {
+                width: 48px;
+                height: 48px;
+                top: 15px;
+                right: 15px;
+            }
+            
+            .theme-toggle-float i {
+                font-size: 18px;
+            }
+        }
+    </style>
 </head>
-<body class="bg-gradient-to-br from-blue-500 to-blue-700 min-h-screen flex items-center justify-center">
+<body class="min-h-screen flex items-center justify-center" style="background: linear-gradient(to bottom right, #3b82f6, #1d4ed8);">
+    <!-- Floating Theme Toggle Button -->
+    <button onclick="toggleTheme()" class="theme-toggle-float" id="themeToggle" title="Cambiar tema">
+        <i class="fas fa-sun" id="themeIcon"></i>
+    </button>
+
     <div class="w-full max-w-md">
         <!-- Logo/Header -->
         <div class="text-center mb-8">
@@ -84,8 +223,8 @@
         </div>
     </div>
 
-    <!-- Toast Container -->
-    <div id="toastContainer" class="fixed top-4 right-4 space-y-2 z-50"></div>
+    <!-- Toast Container para Login (debajo del botón) -->
+    <div id="loginToastContainer" class="mt-4"></div>
 
     <!-- Scripts -->
     <script src="/Programa-Gestion-SDI/public/js/api.js"></script>
@@ -93,6 +232,54 @@
     <script src="/Programa-Gestion-SDI/public/js/ui.js"></script>
 
     <script>
+        /**
+         * Mostrar toast de login debajo del botón
+         */
+        function mostrarToastLogin(mensaje, tipo = 'error') {
+            // Obtener el botón de login como referencia
+            const loginBtn = document.getElementById('loginBtn');
+            
+            // Determinar colores según tipo
+            const colores = tipo === 'success' 
+                ? 'bg-green-100 border border-green-400 text-green-700'
+                : 'bg-red-100 border border-red-400 text-red-700';
+            
+            // Determinar icono según tipo
+            const icono = tipo === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+            
+            // Crear el toast
+            const toast = document.createElement('div');
+            toast.className = `${colores} px-4 py-3 rounded-lg shadow-lg`;
+            toast.style.position = 'absolute';
+            toast.style.top = '100%';
+            toast.style.left = '50%';
+            toast.style.transform = 'translateX(-50%)';
+            toast.style.marginTop = '0.5rem';
+            toast.style.zIndex = '50';
+            toast.style.whiteSpace = 'nowrap';  // Evita que el texto se rompa en líneas
+            toast.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas ${icono} mr-2"></i>
+                    <span>${mensaje}</span>
+                </div>
+            `;
+            
+            // Hacer el contenedor del botón relativo para posicionamiento absoluto
+            loginBtn.parentElement.style.position = 'relative';
+            
+            // Limpiar toasts anteriores y agregar nuevo
+            const existingToasts = loginBtn.parentElement.querySelectorAll('.toast-login');
+            existingToasts.forEach(t => t.remove());
+            
+            toast.classList.add('toast-login');
+            loginBtn.parentElement.appendChild(toast);
+            
+            // Auto-ocultar después de 2 segundos
+            setTimeout(() => {
+                toast.remove();
+            }, 2000);
+        }
+
         /**
          * Validar que el usuario ya esté autenticado
          */
@@ -126,6 +313,9 @@
             const btnText = document.getElementById('btnText');
             const btnIcon = document.getElementById('btnIcon');
 
+            // Limpiar toasts anteriores
+            // Ya no se necesita limpiar el contenedor
+
             // Deshabilitar botón y mostrar carga
             loginBtn.disabled = true;
             btnText.textContent = 'Procesando...';
@@ -148,13 +338,13 @@
                     console.log('[LOGIN] Resultado de verificación:', verificacion);
                     
                     if (verificacion) {
-                        ui.toast('Bienvenido a SDI', 'success');
+                        mostrarToastLogin('Bienvenido a SDI', 'success');
                         setTimeout(() => {
                             window.location.href = '/Programa-Gestion-SDI/index.html';
                         }, 500);
                     } else {
                         console.error('[LOGIN] Error: Login exitoso pero verificación falló');
-                        ui.toast('Error de sesión: La sesión no se creó correctamente', 'error');
+                        mostrarToastLogin('Error de sesión: La sesión no se creó correctamente', 'error');
                         loginBtn.disabled = false;
                         btnText.textContent = 'Iniciar Sesión';
                         btnIcon.className = 'fas fa-arrow-right';
@@ -168,7 +358,7 @@
                         data: resultado?.data
                     });
                     
-                    ui.toast(mensajeError, 'error');
+                    mostrarToastLogin(mensajeError, 'error');
                     loginBtn.disabled = false;
                     btnText.textContent = 'Iniciar Sesión';
                     btnIcon.className = 'fas fa-arrow-right';
@@ -196,7 +386,7 @@
                     console.error(`[LOGIN] Status HTTP: ${error.status}`);
                 }
                 
-                ui.toast(mensajeError, 'error');
+                mostrarToastLogin(mensajeError, 'error');
                 loginBtn.disabled = false;
                 btnText.textContent = 'Iniciar Sesión';
                 btnIcon.className = 'fas fa-arrow-right';
@@ -211,6 +401,48 @@
                 document.getElementById('loginForm').dispatchEvent(new Event('submit'));
             }
         });
+
+        /**
+         * Inicializar tema desde localStorage o preferencia del sistema
+         */
+        function initTheme() {
+            // Verificar si hay un tema guardado
+            let savedTheme = localStorage.getItem('theme');
+            
+            // Si no hay tema guardado, usar preferencia del sistema
+            if (!savedTheme) {
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                savedTheme = prefersDark ? 'dark' : 'light';
+            }
+            
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
+
+        /**
+         * Cambiar entre modo día y noche
+         */
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        /**
+         * Actualizar icono del tema
+         */
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('themeIcon');
+            if (icon) {
+                icon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            }
+        }
+
+        // Inicializar tema al cargar
+        initTheme();
     </script>
 </body>
 </html>

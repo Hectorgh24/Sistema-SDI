@@ -1,5 +1,20 @@
+# Dependencias de Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Dependencias de Composer (PHP)
+vendor/
+composer.lock
+
 # Archivos de configuración sensibles
 config/db.php
+
+# Archivos de configuración de ejemplo (subir al repositorio)
+!config/db.example.php
 
 # Archivos subidos
 public/uploads/*
@@ -7,19 +22,73 @@ public/uploads/*
 
 # Logs
 *.log
+logs/
+error.log
+access.log
 
 # Archivos temporales
 *.tmp
 *.cache
+tmp/
+temp/
+cache/
+
+# Archivos generados por Puppeteer
+*.pdf
+test-puppeteer.pdf
+puppeteer-temp/
+puppeteer-scripts/
+
+# Archivos de instalación
+install-dependencies.bat
+instalar-sistema.bat
+instalar-dependencias.bat
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
 # Sistema operativo
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
+# Archivos de backup
+*.bak
+*.backup
+*~
+app-backup.js
+
+# Archivos de sesión de PHP
+sessions/
+*.sess
+
+# Archivos de entorno
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Archivos generados
+generated/
+output/
+dist/
+build/
+
+# Archivos específicos del proyecto SDI
+conversion-temp/
+temp-conversion/
+scripts-temp/
+conversion-logs/
+puppeteer-logs/
+
+# Archivos de documentación
 Requerimientos y logica de negocio-SDI.pdf

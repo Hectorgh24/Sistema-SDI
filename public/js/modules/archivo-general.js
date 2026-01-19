@@ -122,6 +122,10 @@ const archivoGeneralModule = {
             contenido.innerHTML = await this.mostrarFormularioDocumento();
             // Re-attachear listener del formulario documento
             this.attachFormularioDocumentoListener();
+            // Inicializar el contenedor de filtro de búsqueda de documentos
+            setTimeout(() => {
+                this.cambiarTipoFiltroDocumento();
+            }, 100);
         }
     },
 
@@ -628,6 +632,23 @@ const archivoGeneralModule = {
         contenedor.innerHTML = '';
         
         switch(campo) {
+            case 'todos':
+                contenedor.innerHTML = `
+                    <label for="filtroDocumentoValor" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
+                        <i class="fas fa-list mr-2"></i>Mostrar Todos
+                    </label>
+                    <input 
+                        type="text" 
+                        id="filtroDocumentoValor" 
+                        disabled
+                        placeholder="Se mostrarán todos los documentos"
+                        class="w-full px-4 py-2 border-2 rounded-lg bg-gray-100 text-gray-500"
+                        style="background-color: var(--bg-secondary); color: var(--text-secondary); border-color: var(--border-color);"
+                        readonly
+                    >
+                `;
+                break;
+                
             case 'estado':
                 contenedor.innerHTML = `
                     <label for="filtroDocumentoValor" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
@@ -635,7 +656,7 @@ const archivoGeneralModule = {
                     </label>
                     <select 
                         id="filtroDocumentoValor" 
-                        class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                        class="w-full px-3 py-1.5 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition text-sm"
                         style="background-color: var(--card-bg); color: var(--text-primary); border-color: var(--border-color);"
                     >
                         <option value="">-- Selecciona un estado --</option>
@@ -655,7 +676,7 @@ const archivoGeneralModule = {
                     <input 
                         type="date" 
                         id="filtroDocumentoValor" 
-                        class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                        class="w-full px-3 py-1.5 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition text-sm"
                         style="background-color: var(--card-bg); color: var(--text-primary); border-color: var(--border-color);"
                     >
                 `;
@@ -671,7 +692,7 @@ const archivoGeneralModule = {
                         type="text" 
                         id="filtroDocumentoValor" 
                         placeholder="Ingrese el valor a buscar..."
-                        class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                        class="w-full px-3 py-1.5 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition text-sm"
                         style="background-color: var(--card-bg); color: var(--text-primary); border-color: var(--border-color);"
                     >
                 `;
@@ -704,8 +725,8 @@ const archivoGeneralModule = {
         
         console.log(`Buscando documentos - Campo: ${campo}, Valor: ${valorBusqueda}, Tipo: ${valor.tagName}`);
         
-        // Requerir valor para todos los campos
-        if (!valorBusqueda) {
+        // Requerir valor para todos los campos excepto 'todos'
+        if (!valorBusqueda && campo !== 'todos') {
             if (campo === 'estado') {
                 this.mostrarToastBusquedaDocumento('Por favor seleccione un estado', 'error');
             } else if (campo === 'fecha_oficio') {
@@ -716,6 +737,14 @@ const archivoGeneralModule = {
             return;
         }
         
+        // Si es 'todos', mostrar todos los documentos
+        if (campo === 'todos') {
+            this.documentosFiltrados = [...this.documentosPorCarpeta];
+            await this.renderizarTablaDocumentosFiltrados();
+            this.mostrarToastBusquedaDocumento(`Mostrando todos los documentos (${this.documentosFiltrados.length})`, 'success');
+            return;
+        }
+        
         try {
             // Filtrar documentos locales
             let documentosFiltrados = [...this.documentosPorCarpeta];
@@ -723,24 +752,47 @@ const archivoGeneralModule = {
             switch(campo) {
                 case 'no_oficio':
                     documentosFiltrados = documentosFiltrados.filter(d => {
-                        const valores = d.valores || {};
-                        const noOficio = valores['No. Oficio'] || '';
+                        if (!d.valores) return false;
+                        // Handle both array and object structure
+                        let valorOficio = null;
+                        if (Array.isArray(d.valores)) {
+                            valorOficio = d.valores.find(v => v.nombre_campo === 'No. Oficio');
+                        } else if (typeof d.valores === 'object') {
+                            valorOficio = Object.values(d.valores).find(v => v.nombre_campo === 'No. Oficio');
+                        }
+                        const noOficio = valorOficio ? valorOficio.valor : '';
                         return noOficio.toLowerCase().includes(valorBusqueda.toLowerCase());
                     });
                     break;
                     
                 case 'emitido_por':
                     documentosFiltrados = documentosFiltrados.filter(d => {
-                        const valores = d.valores || {};
-                        const emitidoPor = valores['Emitido Por'] || '';
+                        if (!d.valores) return false;
+                        // Handle both array and object structure
+                        let valorEmitido = null;
+                        if (Array.isArray(d.valores)) {
+                            valorEmitido = d.valores.find(v => v.nombre_campo === 'Emitido Por');
+                        } else if (typeof d.valores === 'object') {
+                            valorEmitido = Object.values(d.valores).find(v => v.nombre_campo === 'Emitido Por');
+                        }
+                        const emitidoPor = valorEmitido ? valorEmitido.valor : '';
                         return emitidoPor.toLowerCase().includes(valorBusqueda.toLowerCase());
                     });
                     break;
                     
                 case 'descripcion':
-                    documentosFiltrados = documentosFiltrados.filter(d => 
-                        d.descripcion && d.descripcion.toLowerCase().includes(valorBusqueda.toLowerCase())
-                    );
+                    documentosFiltrados = documentosFiltrados.filter(d => {
+                        if (!d.valores) return false;
+                        // Handle both array and object structure
+                        let valorDescripcion = null;
+                        if (Array.isArray(d.valores)) {
+                            valorDescripcion = d.valores.find(v => v.nombre_campo === 'Descripción Asunto');
+                        } else if (typeof d.valores === 'object') {
+                            valorDescripcion = Object.values(d.valores).find(v => v.nombre_campo === 'Descripción Asunto');
+                        }
+                        const descripcion = valorDescripcion ? valorDescripcion.valor : '';
+                        return descripcion.toLowerCase().includes(valorBusqueda.toLowerCase());
+                    });
                     break;
                     
                 case 'estado':
@@ -752,7 +804,7 @@ const archivoGeneralModule = {
                     
                 case 'fecha_oficio':
                     documentosFiltrados = documentosFiltrados.filter(d => {
-                        const fechaDocumento = d.fecha_oficio ? new Date(d.fecha_oficio).toISOString().split('T')[0] : '';
+                        const fechaDocumento = d.fecha_documento ? new Date(d.fecha_documento).toISOString().split('T')[0] : '';
                         return fechaDocumento === valorBusqueda;
                     });
                     console.log(`Buscando por fecha: ${valorBusqueda}, encontrados: ${documentosFiltrados.length}`);
@@ -797,86 +849,129 @@ const archivoGeneralModule = {
     },
 
     /**
-     * Renderizar tabla de documentos filtrados
+     * Actualizar tabla de documentos (método wrapper)
      */
-    async renderizarTablaDocumentosFiltrados() {
+    async actualizarTablaDocumentos() {
+        await this.renderizarTablaDocumentosFiltrados(true);
+    },
+
+    /**
+     * Renderizar tabla de documentos filtrados
+     * Renderiza tabla con estilo idéntico a Carpetas (Versión Final)
+     */
+async renderizarTablaDocumentosFiltrados(esCargaInicial = false) {
         const container = document.getElementById('tablaDocumentosContainer');
         if (!container) return;
 
-        if (this.documentosFiltrados.length === 0) {
+        const datos = this.documentosFiltrados || [];
+        const totalDocs = this.documentosPorCarpeta ? this.documentosPorCarpeta.length : 0;
+
+        // Estado: Carpeta Vacía
+        if (esCargaInicial && totalDocs === 0) {
             container.innerHTML = `
-                <div style="text-align: center; padding: 30px; color: var(--text-secondary);">
-                    <i class="fas fa-search text-4xl mb-3" style="color: #9ca3af;"></i>
-                    <p>No se encontraron documentos con los criterios de búsqueda</p>
-                </div>
-            `;
+                <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                    <i class="fas fa-folder-open text-4xl mb-3" style="color: #e5e7eb;"></i>
+                    <p class="font-medium">Esta carpeta está vacía</p>
+                    <p class="text-sm">No hay documentos registrados.</p>
+                </div>`;
             return;
         }
 
+        // Estado: Sin Resultados
+        if (!esCargaInicial && datos.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 30px; color: var(--text-secondary);">
+                    <i class="fas fa-search text-4xl mb-3" style="color: #fca5a5;"></i>
+                    <p>No se encontraron documentos con ese criterio.</p>
+                    <button onclick="document.getElementById('filtroDocumentoCampo').value='todos'; archivoGeneralModule.cambiarTipoFiltroDocumento(); archivoGeneralModule.aplicarFiltrosDocumentos();" class="mt-2 text-blue-500 hover:underline">Ver todos</button>
+                </div>`;
+            return;
+        }
+
+        const filasHTML = datos.map(doc => {
+            // Extraer valores del EAV structure (handle both array and object)
+            const valores = doc.valores || [];
+            let valorOficio = null;
+            let valorEmitido = null;
+            let valorDescripcion = null;
+            
+            if (Array.isArray(valores)) {
+                valorOficio = valores.find(v => v.nombre_campo === 'No. Oficio');
+                valorEmitido = valores.find(v => v.nombre_campo === 'Emitido Por');
+                valorDescripcion = valores.find(v => v.nombre_campo === 'Descripción Asunto');
+            } else if (typeof valores === 'object') {
+                const valoresArray = Object.values(valores);
+                valorOficio = valoresArray.find(v => v.nombre_campo === 'No. Oficio');
+                valorEmitido = valoresArray.find(v => v.nombre_campo === 'Emitido Por');
+                valorDescripcion = valoresArray.find(v => v.nombre_campo === 'Descripción Asunto');
+            }
+            
+            const noOficio = valorOficio ? valorOficio.valor : '<span class="italic text-gray-400">S/N</span>';
+            const emitidoPor = valorEmitido ? valorEmitido.valor : 'N/A';
+            const descripcion = valorDescripcion ? valorDescripcion.valor : '-';
+            
+            let fecha = 'N/A';
+            if (doc.fecha_documento) {
+                try { fecha = new Date(doc.fecha_documento).toLocaleDateString('es-ES'); } catch(e) {}
+            }
+
+            const estado = doc.estado_gestion || 'pendiente';
+            const coloresEstado = {
+                'pendiente': { bg: '#fef3c7', text: '#92400e', icono: '📋' },
+                'en_revision': { bg: '#dbeafe', text: '#1e40af', icono: '🔍' },
+                'archivado': { bg: '#e5e7eb', text: '#374151', icono: '📦' },
+                'cancelado': { bg: '#fee2e2', text: '#991b1b', icono: '❌' }
+            };
+            const col = coloresEstado[estado] || coloresEstado['pendiente'];
+
+            return `
+                <tr style="border-bottom: 1px solid var(--border-color); transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='var(--bg-secondary)'" onmouseout="this.style.backgroundColor='transparent';">
+                    <td class="px-3 sm:px-6 py-4 font-bold text-sm" style="color: #3b82f6;">
+                        <i class="fas fa-file-alt mr-2"></i>${noOficio}
+                    </td>
+                    <td class="px-3 sm:px-6 py-4 font-medium text-sm" style="color: var(--text-primary);">
+                        <i class="fas fa-align-left mr-2" style="color: #8b5cf6;"></i>${descripcion}
+                    </td>
+                    <td class="px-3 sm:px-6 py-4 font-medium text-sm hidden md:table-cell" style="color: var(--text-primary);">
+                        <i class="fas fa-user-tie mr-2" style="color: #6b7280;"></i>${emitidoPor}
+                    </td>
+                    <td class="px-3 sm:px-6 py-4">
+                        <span class="px-2 sm:px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap" style="background-color: ${col.bg}; color: ${col.text};">
+                            ${col.icono} ${estado.replace('_', ' ').toUpperCase()}
+                        </span>
+                    </td>
+                    <td class="px-3 sm:px-6 py-4 text-xs sm:text-sm hidden sm:table-cell" style="color: var(--text-secondary);">
+                        <i class="fas fa-calendar-alt mr-1"></i>${fecha}
+                    </td>
+                    <td class="px-3 sm:px-6 py-4 text-center whitespace-nowrap">
+                        <button onclick="archivoGeneralModule.editarDocumento(${doc.id_registro})" class="text-amber-600 hover:text-amber-800 mr-3 transition" title="Editar"><i class="fas fa-edit"></i></button>
+                        <button onclick="archivoGeneralModule.eliminarDocumento(${doc.id_registro})" class="text-red-600 hover:text-red-800 transition" title="Eliminar"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`;
+        }).join('');
+
         const tablaHTML = `
-            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-                <thead>
-                    <tr style="border-bottom: 2px solid var(--border-color); background-color: var(--bg-secondary);">
-                        <th style="padding: 12px; text-align: left; color: var(--text-primary); font-weight: 600;">No. Oficio</th>
-                        <th style="padding: 12px; text-align: left; color: var(--text-primary); font-weight: 600;">Emitido Por</th>
-                        <th style="padding: 12px; text-align: left; color: var(--text-primary); font-weight: 600;">Fecha</th>
-                        <th style="padding: 12px; text-align: left; color: var(--text-primary); font-weight: 600;">Estado</th>
-                        <th style="padding: 12px; text-align: center; color: var(--text-primary); font-weight: 600;">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${this.documentosFiltrados.map((doc, index) => {
-                        const estiloFila = index % 2 === 0 ? 'background-color: transparent;' : 'background-color: var(--bg-secondary);';
-                        const valores = doc.valores || {};
-                        const noOficio = valores['No. Oficio'] || 'N/A';
-                        const emitidoPor = valores['Emitido Por'] || 'N/A';
-                        const fecha = doc.fecha_oficio ? new Date(doc.fecha_oficio).toLocaleDateString('es-ES') : 'N/A';
-                        const estado = doc.estado_gestion || 'pendiente';
-                        
-                        let colorEstado = '#ef4444'; // rojo
-                        let iconoEstado = 'fa-hourglass-start';
-                        
-                        if (estado === 'en_revision') {
-                            colorEstado = '#f59e0b';
-                            iconoEstado = 'fa-hourglass-half';
-                        } else if (estado === 'archivado') {
-                            colorEstado = '#10b981';
-                            iconoEstado = 'fa-check-circle';
-                        } else if (estado === 'cancelado') {
-                            colorEstado = '#6b7280';
-                            iconoEstado = 'fa-ban';
-                        }
-                        
-                        return `
-                            <tr style="border-bottom: 1px solid var(--border-color); ${estiloFila}">
-                                <td style="padding: 12px; color: var(--text-primary); font-weight: 600;">${noOficio}</td>
-                                <td style="padding: 12px; color: var(--text-primary);">${emitidoPor}</td>
-                                <td style="padding: 12px; color: var(--text-primary);">${fecha}</td>
-                                <td style="padding: 12px;">
-                                    <span style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 4px; background-color: ${colorEstado}20; color: ${colorEstado}; font-size: 0.85rem; font-weight: 600;">
-                                        <i class="fas ${iconoEstado}"></i>${estado.replace('_', ' ')}</span>
-                                </td>
-                                <td style="padding: 12px; text-align: center;">
-                                    <button onclick="archivoGeneralModule.verDocumento(${doc.id_registro})" title="Ver detalles" style="background: none; border: none; color: #3b82f6; cursor: pointer; font-size: 16px; margin: 0 5px;">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                    <button onclick="archivoGeneralModule.editarDocumento(${doc.id_registro})" title="Editar" style="background: none; border: none; color: #f59e0b; cursor: pointer; font-size: 16px; margin: 0 5px;">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button onclick="archivoGeneralModule.eliminarDocumento(${doc.id_registro})" title="Eliminar" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 16px; margin: 0 5px;">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        `;
-                    }).join('')}
-                </tbody>
-            </table>
-        `;
+            <div class="mt-4 overflow-x-auto rounded-lg border shadow-md" style="border-color: var(--border-color);">
+                <table class="w-full text-xs sm:text-sm" style="background-color: var(--card-bg);">
+                    <thead style="background-color: var(--bg-secondary); border-bottom: 2px solid var(--border-color);">
+                        <tr>
+                            <th class="px-3 sm:px-6 py-3 text-left font-semibold" style="color: var(--text-primary);"><i class="fas fa-barcode mr-1"></i>No. Oficio</th>
+                            <th class="px-3 sm:px-6 py-3 text-left font-semibold" style="color: var(--text-primary);"><i class="fas fa-align-left mr-1"></i>Descripción</th>
+                            <th class="px-3 sm:px-6 py-3 text-left font-semibold hidden md:table-cell" style="color: var(--text-primary);"><i class="fas fa-user mr-1"></i>Emitido Por</th>
+                            <th class="px-3 sm:px-6 py-3 text-left font-semibold" style="color: var(--text-primary);"><i class="fas fa-info-circle mr-1"></i>Estado</th>
+                            <th class="px-3 sm:px-6 py-3 text-left font-semibold hidden sm:table-cell" style="color: var(--text-primary);"><i class="fas fa-calendar mr-1"></i>Fecha</th>
+                            <th class="px-3 sm:px-6 py-3 text-center font-semibold" style="color: var(--text-primary);"><i class="fas fa-cog mr-1"></i>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">${filasHTML}</tbody>
+                </table>
+                <div class="px-6 py-3 bg-gray-50 border-t text-xs text-gray-500 flex justify-between">
+                    <span>Mostrando ${datos.length} registro(s)</span>
+                </div>
+            </div>`;
         
         container.innerHTML = tablaHTML;
     },
-
     /**
      * Validar que el título no se repita
      */
@@ -949,125 +1044,45 @@ const archivoGeneralModule = {
     /**
      * Cargar documentos de una carpeta específica
      */
-    async cargarDocumentosPorCarpeta(idCarpeta) {
+ async cargarDocumentosPorCarpeta(idCarpeta) {
         try {
-            if (!idCarpeta) {
-                this.documentosPorCarpeta = [];
-                return;
-            }
+            this.documentosPorCarpeta = []; // Limpiar antes de cargar
+            if (!idCarpeta) return;
 
-            // Llamar a API (endpoint que crearemos)
             const resultado = await api.get('/documentos/por-carpeta/' + idCarpeta);
 
-            if (resultado.success && Array.isArray(resultado.data)) {
-                this.documentosPorCarpeta = resultado.data;
-                console.log(`✓ ${this.documentosPorCarpeta.length} documentos cargados para carpeta ${idCarpeta}`);
-            } else {
-                this.documentosPorCarpeta = [];
+            // DETECCIÓN INTELIGENTE DE ESTRUCTURA DE RESPUESTA
+            let datos = [];
+            
+            if (resultado && resultado.success && Array.isArray(resultado.data)) {
+                // Caso 1: Estándar { success: true, data: [...] }
+                datos = resultado.data;
+            } else if (Array.isArray(resultado)) {
+                // Caso 2: La API devuelve directamente el array [ {...}, {...} ]
+                datos = resultado;
+            } else if (resultado && resultado.data && Array.isArray(resultado.data.documentos)) {
+                // Caso 3: Anidado { data: { documentos: [...] } }
+                datos = resultado.data.documentos;
+            } else if (resultado && Array.isArray(resultado.documentos)) {
+                // Caso 4: { documentos: [...] }
+                datos = resultado.documentos;
             }
+
+            this.documentosPorCarpeta = datos;
+            console.log(`✓ Documentos cargados: ${datos.length}`, datos);
+            
+            // Debug: Check if documentos have valores structure
+            if (datos.length > 0) {
+                console.log('Ejemplo de estructura de documento:', datos[0]);
+                console.log('Valores del primer documento:', datos[0].valores);
+            }
+
         } catch (error) {
             console.error('Error cargando documentos:', error);
             this.documentosPorCarpeta = [];
+            this.mostrarToastBusquedaDocumento('Error de conexión al cargar documentos', 'error');
         }
     },
-
-    /**
-     * Renderizar tabla de documentos
-     */
-    async renderizarTablaDocumentos() {
-        const idCarpeta = document.getElementById('carpetaDocumento')?.value;
-        
-        if (!idCarpeta) {
-            return `
-                <div style="text-align: center; padding: 30px; color: var(--text-secondary);">
-                    <i class="fas fa-inbox text-4xl mb-3" style="color: #9ca3af;"></i>
-                    <p>Selecciona una carpeta para ver los documentos registrados</p>
-                </div>
-            `;
-        }
-
-        // Cargar documentos de la carpeta seleccionada
-        await this.cargarDocumentosPorCarpeta(idCarpeta);
-
-        if (this.documentosPorCarpeta.length === 0) {
-            return `
-                <div style="text-align: center; padding: 30px; color: var(--text-secondary);">
-                    <i class="fas fa-file-alt text-4xl mb-3" style="color: #9ca3af;"></i>
-                    <p>No hay documentos registrados en esta carpeta</p>
-                </div>
-            `;
-        }
-
-        return `
-            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-                <thead>
-                    <tr style="border-bottom: 2px solid var(--border-color); background-color: var(--bg-secondary);">
-                        <th style="padding: 12px; text-align: left; color: var(--text-primary); font-weight: 600;">No. Oficio</th>
-                        <th style="padding: 12px; text-align: left; color: var(--text-primary); font-weight: 600;">Emitido Por</th>
-                        <th style="padding: 12px; text-align: left; color: var(--text-primary); font-weight: 600;">Fecha</th>
-                        <th style="padding: 12px; text-align: left; color: var(--text-primary); font-weight: 600;">Estado</th>
-                        <th style="padding: 12px; text-align: center; color: var(--text-primary); font-weight: 600;">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${this.documentosPorCarpeta.map((doc, index) => {
-                        const estiloFila = index % 2 === 0 ? 'background-color: transparent;' : 'background-color: var(--bg-secondary);';
-                        const valores = doc.valores || {};
-                        const noOficio = valores['No. Oficio'] || 'N/A';
-                        const emitidoPor = valores['Emitido Por'] || 'N/A';
-                        const fecha = doc.fecha_documento ? new Date(doc.fecha_documento).toLocaleDateString('es-ES') : 'N/A';
-                        const estado = doc.estado_gestion || 'pendiente';
-                        
-                        let colorEstado = '#ef4444'; // rojo
-                        let iconoEstado = 'fa-hourglass-start';
-                        
-                        if (estado === 'en_revision') {
-                            colorEstado = '#f59e0b';
-                            iconoEstado = 'fa-hourglass-half';
-                        } else if (estado === 'archivado') {
-                            colorEstado = '#10b981';
-                            iconoEstado = 'fa-check-circle';
-                        } else if (estado === 'cancelado') {
-                            colorEstado = '#6b7280';
-                            iconoEstado = 'fa-ban';
-                        }
-                        
-                        return `
-                            <tr style="border-bottom: 1px solid var(--border-color); ${estiloFila}">
-                                <td style="padding: 12px; color: var(--text-primary); font-weight: 600;">${noOficio}</td>
-                                <td style="padding: 12px; color: var(--text-primary);">${emitidoPor}</td>
-                                <td style="padding: 12px; color: var(--text-primary);">${fecha}</td>
-                                <td style="padding: 12px;">
-                                    <span style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 4px; background-color: ${colorEstado}20; color: ${colorEstado}; font-size: 0.85rem; font-weight: 600;">
-                                        <i class="fas ${iconoEstado}"></i>${estado.replace('_', ' ')}
-                                    </span>
-                                </td>
-                                <td style="padding: 12px; text-align: center;">
-                                    <button onclick="archivoGeneralModule.verDocumento(${doc.id_registro})" title="Ver detalles" style="background: none; border: none; color: #3b82f6; cursor: pointer; font-size: 16px; margin: 0 5px;">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                    <button onclick="archivoGeneralModule.eliminarDocumento(${doc.id_registro})" title="Eliminar" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 16px; margin: 0 5px;">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        `;
-                    }).join('')}
-                </tbody>
-            </table>
-        `;
-    },
-
-    /**
-     * Actualizar tabla de documentos
-     */
-    async actualizarTablaDocumentos() {
-        const container = document.getElementById('tablaDocumentosContainer');
-        if (container) {
-            container.innerHTML = await this.renderizarTablaDocumentos();
-        }
-    },
-
     /**
      * Ver detalles de un documento
      */
@@ -1087,13 +1102,31 @@ const archivoGeneralModule = {
         }
 
         // Mostrar modal de edición con los datos del documento
-        const valores = documento.valores || {};
-        const noOficio = valores['No. Oficio'] || '';
-        const emitidoPor = valores['Emitido Por'] || '';
-        const descripcion = documento.descripcion || '';
-        const fechaOficio = documento.fecha_oficio ? new Date(documento.fecha_oficio).toISOString().split('T')[0] : '';
-        const capturadoPor = documento.capturado_por || '';
-        const auditoria = documento.auditoria || '';
+        const valores = documento.valores || [];
+        let valorOficio = null;
+        let valorEmitido = null;
+        let valorDescripcion = null;
+        let valorAuditoria = null;
+        
+        if (Array.isArray(valores)) {
+            valorOficio = valores.find(v => v.nombre_campo === 'No. Oficio');
+            valorEmitido = valores.find(v => v.nombre_campo === 'Emitido Por');
+            valorDescripcion = valores.find(v => v.nombre_campo === 'Descripción Asunto');
+            valorAuditoria = valores.find(v => v.nombre_campo === 'Nombre Auditoría');
+        } else if (typeof valores === 'object') {
+            const valoresArray = Object.values(valores);
+            valorOficio = valoresArray.find(v => v.nombre_campo === 'No. Oficio');
+            valorEmitido = valoresArray.find(v => v.nombre_campo === 'Emitido Por');
+            valorDescripcion = valoresArray.find(v => v.nombre_campo === 'Descripción Asunto');
+            valorAuditoria = valoresArray.find(v => v.nombre_campo === 'Nombre Auditoría');
+        }
+        
+        const noOficio = valorOficio ? valorOficio.valor : '';
+        const emitidoPor = valorEmitido ? valorEmitido.valor : '';
+        const descripcion = valorDescripcion ? valorDescripcion.valor : '';
+        const auditoria = valorAuditoria ? valorAuditoria.valor : '';
+        const fechaOficio = documento.fecha_documento ? new Date(documento.fecha_documento).toISOString().split('T')[0] : '';
+        const capturadoPor = documento.nombre ? `${documento.nombre} ${documento.apellido_paterno || ''}` : '';
 
         const modalHTML = `
             <div class="bg-white rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -1191,11 +1224,29 @@ const archivoGeneralModule = {
                         >
                     </div>
 
+                    <!-- Estado de Gestión -->
+                    <div>
+                        <label class="block text-sm font-medium mb-2 text-gray-700">
+                            <i class="fas fa-tasks mr-2"></i>Estado de Gestión <span class="text-red-500">*</span>
+                        </label>
+                        <select 
+                            id="editEstadoGestion" 
+                            required
+                            class="w-full px-4 py-1 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-xs"
+                            style="border-color: #d1d5db;"
+                        >
+                            <option value="pendiente" ${documento.estado_gestion === 'pendiente' ? 'selected' : ''}>📋 Pendiente</option>
+                            <option value="en_revision" ${documento.estado_gestion === 'en_revision' ? 'selected' : ''}>🔍 En Revisión</option>
+                            <option value="archivado" ${documento.estado_gestion === 'archivado' ? 'selected' : ''}>📦 Archivado</option>
+                            <option value="cancelado" ${documento.estado_gestion === 'cancelado' ? 'selected' : ''}>❌ Cancelado</option>
+                        </select>
+                    </div>
+
                     <!-- Botones -->
                     <div class="flex gap-3 justify-end pt-4">
                         <button 
                             type="button" 
-                            onclick="ui.closeModal('modalEditarDocumento')"
+                            onclick="archivoGeneralModule.volverAFormularioDocumento()"
                             class="px-6 py-2 border-2 rounded-lg font-medium transition"
                             style="border-color: #d1d5db; color: #6b7280;"
                         >
@@ -1239,6 +1290,7 @@ const archivoGeneralModule = {
             const auditoria = document.getElementById('editAuditoria').value.trim();
             const descripcion = document.getElementById('editDescripcion').value.trim();
             const capturadoPor = document.getElementById('editCapturadoPor').value.trim();
+            const estadoGestion = document.getElementById('editEstadoGestion').value;
 
             // Validaciones
             if (!noOficio) {
@@ -1266,16 +1318,17 @@ const archivoGeneralModule = {
             const datos = {
                 no_oficio: noOficio,
                 emitido_por: emitidoPor,
-                fecha_oficio: fechaOficio,
+                fecha_documento: fechaOficio,
                 auditoria: auditoria,
                 descripcion: descripcion,
-                capturado_por: capturadoPor
+                capturado_por: capturadoPor,
+                estado_gestion: estadoGestion
             };
 
             console.log('📝 Actualizando documento:', { id, datos });
 
-            // Enviar a API (endpoint que crearemos)
-            const resultado = await api.put(`/documentos/actualizar/${id}`, datos);
+            // Enviar a API (endpoint estándar REST)
+            const resultado = await api.put(`/documentos/${id}`, datos);
 
             console.log('✅ Respuesta del servidor:', resultado);
 
@@ -1283,12 +1336,13 @@ const archivoGeneralModule = {
                 ui.toast('✓ Documento actualizado exitosamente', 'success');
                 
                 // Cerrar modal
-                ui.closeModal('modalEditarDocumento');
+                document.querySelector('.modal-backdrop')?.remove();
+                document.querySelector('.modal-container')?.remove();
                 
                 // Recargar documentos de la carpeta
-                const idCarpeta = document.getElementById('carpetaDocumento')?.value;
-                if (idCarpeta) {
-                    await this.cargarDocumentosPorCarpeta(idCarpeta);
+                const filtroBusquedaCarpeta = document.getElementById('filtroBusquedaCarpeta')?.value;
+                if (filtroBusquedaCarpeta) {
+                    await this.cargarDocumentosPorCarpeta(parseInt(filtroBusquedaCarpeta));
                     await this.actualizarTablaDocumentos();
                 }
             } else {
@@ -1302,6 +1356,21 @@ const archivoGeneralModule = {
     },
 
     /**
+     * Volver al formulario de documentos desde el modal de edición
+     */
+    volverAFormularioDocumento() {
+        // Cerrar modal
+        document.querySelector('.modal-backdrop')?.remove();
+        document.querySelector('.modal-container')?.remove();
+        
+        // Volver a la pestaña de documentos
+        const tabDocumentos = document.querySelector('[onclick*="cambiarPestana(\'documentos\')"]');
+        if (tabDocumentos) {
+            tabDocumentos.click();
+        }
+    },
+
+    /**
      * Eliminar un documento
      */
     async eliminarDocumento(id) {
@@ -1311,18 +1380,25 @@ const archivoGeneralModule = {
                 try {
                     console.log('🗑️ Eliminando documento:', id);
                     
-                    // Enviar a API (endpoint que crearemos)
-                    const resultado = await api.delete(`/documentos/eliminar/${id}`);
+                    // Enviar a API (endpoint estándar REST)
+                    const resultado = await api.delete(`/documentos/${id}`);
                     
                     console.log('✅ Respuesta del servidor:', resultado);
                     
                     if (resultado.success) {
                         ui.toast('✓ Documento eliminado exitosamente', 'success');
                         
-                        // Recargar documentos de la carpeta
-                        const idCarpeta = document.getElementById('carpetaDocumento')?.value;
-                        if (idCarpeta) {
-                            await this.cargarDocumentosPorCarpeta(idCarpeta);
+                        // Remove from local array immediately
+                        this.documentosPorCarpeta = this.documentosPorCarpeta.filter(d => d.id_registro !== id);
+                        this.documentosFiltrados = this.documentosFiltrados.filter(d => d.id_registro !== id);
+                        
+                        // Update table immediately
+                        await this.actualizarTablaDocumentos();
+                        
+                        // Also reload from server to ensure consistency
+                        const filtroBusquedaCarpeta = document.getElementById('filtroBusquedaCarpeta')?.value;
+                        if (filtroBusquedaCarpeta) {
+                            await this.cargarDocumentosPorCarpeta(parseInt(filtroBusquedaCarpeta));
                             await this.actualizarTablaDocumentos();
                         }
                     } else {
@@ -1340,25 +1416,33 @@ const archivoGeneralModule = {
     /**
      * Mostrar formulario para registrar documento
      */
+/**
+     * Mostrar formulario para registrar documento y Sección de Búsqueda
+     * NOTA: Es vital actualizar esto para crear los IDs que usa el buscador.
+     */
+/**
+     * Mostrar formulario para registrar documento y Sección de Búsqueda
+     * VERSIÓN COMPLETA (Sin recortes para evitar errores 'null')
+     */
     async mostrarFormularioDocumento() {
-        // Asegurar que las carpetas estén cargadas
+        // 1. Cargar carpetas si no existen
         if (this.carpetas.length === 0) {
             await this.cargarCarpetas();
         }
 
-        const hoy = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        const hoy = new Date().toISOString().split('T')[0];
         
         return `
             <div class="w-full max-w-6xl mx-auto space-y-6">
+                
                 <form id="formDocumento" class="space-y-6">
-                    <!-- Sección: Identificación de Oficio -->
+                    
                     <div class="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200" style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.05) 0%, rgba(236, 72, 153, 0.05) 100%);">
                         <h2 class="text-lg font-semibold mb-4 flex items-center" style="color: var(--text-primary);">
                             <i class="fas fa-file-invoice mr-2" style="color: #a855f7;"></i>Identificación del Oficio
                         </h2>
                         
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <!-- No. de Oficio -->
                             <div>
                                 <label for="noOficio" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
                                     <i class="fas fa-barcode mr-2"></i>No. de Oficio <span class="text-red-500">*</span>
@@ -1374,17 +1458,15 @@ const archivoGeneralModule = {
                                 >
                             </div>
 
-                            <!-- No. Carpeta Física -->
                             <div>
                                 <label for="carpetaDocumento" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
-                                    <i class="fas fa-folder mr-2"></i>No. Carpeta Física <span class="text-red-500">*</span>
+                                    <i class="fas fa-folder mr-2"></i>Guardar en Carpeta <span class="text-red-500">*</span>
                                 </label>
                                 <select 
                                     id="carpetaDocumento" 
                                     name="id_carpeta" 
                                     required
-                                    onchange="archivoGeneralModule.actualizarTablaDocumentos()"
-                                    class="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                                    class="w-full px-3 py-1.5 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm"
                                     style="background-color: var(--card-bg); color: var(--text-primary); border-color: var(--border-color);"
                                 >
                                     <option value="">Selecciona una carpeta...</option>
@@ -1394,14 +1476,12 @@ const archivoGeneralModule = {
                         </div>
                     </div>
 
-                    <!-- Sección: Datos Principales -->
                     <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(99, 102, 241, 0.05) 100%);">
                         <h2 class="text-lg font-semibold mb-4 flex items-center" style="color: var(--text-primary);">
                             <i class="fas fa-info-circle mr-2" style="color: #3b82f6;"></i>Datos del Oficio
                         </h2>
                         
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <!-- Auditoría (Opcional) -->
                             <div>
                                 <label for="auditoria" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
                                     <i class="fas fa-search mr-2"></i>Auditoría
@@ -1414,10 +1494,8 @@ const archivoGeneralModule = {
                                     class="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                                     style="background-color: var(--card-bg); color: var(--text-primary); border-color: var(--border-color);"
                                 >
-                                <p class="text-xs mt-2" style="color: var(--text-secondary);"><i class="fas fa-info-circle mr-1"></i>Campo opcional</p>
                             </div>
 
-                            <!-- Emitido Por -->
                             <div>
                                 <label for="emitidoPor" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
                                     <i class="fas fa-user mr-2"></i>Emitido Por <span class="text-red-500">*</span>
@@ -1433,7 +1511,6 @@ const archivoGeneralModule = {
                                 >
                             </div>
 
-                            <!-- Fecha de Oficio -->
                             <div>
                                 <label for="fechaOficio" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
                                     <i class="fas fa-calendar mr-2"></i>Fecha de Oficio <span class="text-red-500">*</span>
@@ -1441,28 +1518,24 @@ const archivoGeneralModule = {
                                 <input 
                                     type="date" 
                                     id="fechaOficio" 
-                                    name="fecha_oficio" 
+                                    name="fecha_documento" 
                                     required
                                     max="${hoy}"
                                     class="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                                     style="background-color: var(--card-bg); color: var(--text-primary); border-color: var(--border-color);"
                                 >
-                                <p class="text-xs mt-2" style="color: var(--text-secondary);"><i class="fas fa-clock mr-1"></i>No puede ser fecha futura</p>
                             </div>
 
-                            <!-- Fecha de Archivo (Automática) -->
                             <div>
-                                <label for="fechaArchivo" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
+                                <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
                                     <i class="fas fa-file-archive mr-2"></i>Fecha de Archivo
                                 </label>
                                 <div class="w-full px-4 py-3 border-2 rounded-lg flex items-center gap-2" style="background-color: var(--bg-secondary); color: var(--text-primary); border-color: #10b981; min-height: 45px;">
-                                    <i class="fas fa-lock" style="color: #10b981;"></i><span id="fechaArchivoDisplay">${hoy}</span>
+                                    <i class="fas fa-lock" style="color: #10b981;"></i><span>${hoy}</span>
                                 </div>
-                                <p class="text-xs mt-2" style="color: var(--text-secondary);"><i class="fas fa-check-circle mr-1" style="color: #10b981;"></i>Se llena automáticamente</p>
                             </div>
                         </div>
 
-                        <!-- Capturado Por -->
                         <div class="mt-4">
                             <label for="capturadoPor" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
                                 <i class="fas fa-keyboard mr-2"></i>Capturado Por <span class="text-red-500">*</span>
@@ -1472,19 +1545,14 @@ const archivoGeneralModule = {
                                 id="capturadoPor" 
                                 name="capturado_por" 
                                 required
-                                placeholder="Nombre de quien captura el documento"
+                                placeholder="Nombre de quien captura"
                                 class="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                                 style="background-color: var(--card-bg); color: var(--text-primary); border-color: var(--border-color);"
                             >
                         </div>
                     </div>
 
-                    <!-- Sección: Descripción -->
                     <div class="bg-gradient-to-r from-gray-50 to-slate-50 p-4 rounded-lg border border-gray-200" style="background: linear-gradient(135deg, rgba(107, 114, 128, 0.05) 0%, rgba(71, 85, 105, 0.05) 100%);">
-                        <h2 class="text-lg font-semibold mb-4 flex items-center" style="color: var(--text-primary);">
-                            <i class="fas fa-align-left mr-2" style="color: #6b7280;"></i>Descripción
-                        </h2>
-                        
                         <label for="descripcion" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
                             <i class="fas fa-align-left mr-2"></i>Asunto/Descripción <span class="text-red-500">*</span>
                         </label>
@@ -1493,114 +1561,342 @@ const archivoGeneralModule = {
                             name="descripcion" 
                             required
                             rows="4"
-                            placeholder="Describe el asunto, contenido o propósito del oficio..."
+                            placeholder="Describe el asunto..."
                             class="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"
                             style="background-color: var(--card-bg); color: var(--text-primary); border-color: var(--border-color);"
                         ></textarea>
                     </div>
 
-                    <!-- Sección: Archivo Adjunto (EN DESARROLLO - DESHABILITADO) -->
-                    <div class="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-lg border border-yellow-300 opacity-50 pointer-events-none" style="background: linear-gradient(135deg, rgba(234, 179, 8, 0.08) 0%, rgba(249, 115, 22, 0.08) 100%);">
-                        <h2 class="text-lg font-semibold mb-4 flex items-center" style="color: var(--text-primary);">
-                            <i class="fas fa-file-upload mr-2" style="color: #f97316;"></i>Archivo Adjunto
-                        </h2>
-                        
-                        <div class="border-2 border-dashed rounded-lg p-6 text-center cursor-not-allowed" 
-                             style="border-color: #fbbf24; background-color: rgba(254, 243, 199, 0.3);">
-                            <div>
-                                <i class="fas fa-cloud-upload-alt text-4xl mb-2" style="color: #f97316;"></i>
-                                <p style="color: var(--text-primary); font-weight: 600;">Funcionalidad en desarrollo</p>
-                                <p style="color: var(--text-secondary); font-size: 0.875rem;">Esta característica estará disponible próximamente</p>
-                            </div>
-                        </div>
+                    <div class="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-lg border border-amber-200" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(251, 146, 60, 0.05) 100%);">
+                        <label for="estadoGestion" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
+                            <i class="fas fa-tasks mr-2"></i>Estado de Gestión <span class="text-red-500">*</span>
+                        </label>
+                        <select 
+                            id="estadoGestion" 
+                            name="estado_gestion" 
+                            required
+                            class="w-full px-4 py-1 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 transition text-xs"
+                            style="background-color: var(--card-bg); color: var(--text-primary); border-color: var(--border-color);"
+                        >
+                            <option value="pendiente">📋 Pendiente</option>
+                            <option value="en_revision">🔍 En Revisión</option>
+                            <option value="archivado">📦 Archivado</option>
+                            <option value="cancelado">❌ Cancelado</option>
+                        </select>
                     </div>
 
-                    <!-- Botones de acción -->
-                    <div class="flex flex-col sm:flex-row gap-3 justify-center pt-4" id="botonesFormularioDocumento">
-                        <button 
-                            type="submit" 
-                            class="px-8 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition font-semibold shadow-md hover:shadow-lg text-base"
-                        >
+                    <div class="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+                        <button type="submit" class="px-8 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition font-semibold shadow-md">
                             <i class="fas fa-save mr-2"></i>Registrar Documento
                         </button>
-                        <button 
-                            type="reset" 
-                            class="px-8 py-3 border-2 rounded-lg transition font-semibold text-base"
-                            style="color: var(--text-primary); border-color: var(--border-color); background-color: var(--bg-secondary);"
-                        >
+                        <button type="reset" class="px-8 py-3 border-2 rounded-lg transition font-semibold" style="color: var(--text-primary); border-color: var(--border-color);">
                             <i class="fas fa-redo mr-2"></i>Limpiar
                         </button>
                     </div>
                     
-                    <!-- Contenedor para toast del formulario documento -->
-                    <div id="toastDocumentoContainer" style="min-height: 20px; display: flex; justify-content: center; align-items: center; margin: 10px 0;"></div>
+                    <div id="toastDocumentoContainer" class="flex justify-center mt-2"></div>
                 </form>
 
-                <!-- TABLA DE DOCUMENTOS -->
+                <hr class="border-gray-300 my-8">
+
                 <div class="bg-white p-4 rounded-lg border border-gray-200 shadow">
-                    <h2 class="text-lg font-semibold mb-4 flex items-center" style="color: var(--text-primary);">
-                        <i class="fas fa-list mr-2" style="color: #a855f7;"></i>Documentos Registrados
+                    <h2 class="text-xl font-bold mb-4 flex items-center" style="color: var(--text-primary);">
+                        <i class="fas fa-search mr-2" style="color: #a855f7;"></i>Consultar Documentos
                     </h2>
                     
-                    <!-- Sección de Búsqueda de Documentos -->
-                    <div class="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200 mb-4" style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.05) 0%, rgba(236, 72, 153, 0.05) 100%);">
-                        <h3 class="text-md font-semibold mb-3 flex items-center" style="color: var(--text-primary);">
-                            <i class="fas fa-search mr-2" style="color: #a855f7;"></i>Búsqueda de Documentos
-                        </h3>
-                        
+                    <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 mb-6">
                         <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                            <!-- Campo de Búsqueda -->
+                            
                             <div class="md:col-span-4">
+                                <label for="filtroBusquedaCarpeta" class="block text-sm font-bold mb-2" style="color: var(--text-primary);">
+                                    <i class="fas fa-folder-open mr-2 text-blue-600"></i>1. Seleccionar Carpeta
+                                </label>
+                                <select 
+                                    id="filtroBusquedaCarpeta" 
+                                    class="w-full px-3 py-1.5 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition text-sm"
+                                    style="background-color: var(--card-bg); color: var(--text-primary); border-color: var(--border-color);"
+                                    onchange="archivoGeneralModule.cambiarCarpetaBusqueda()"
+                                >
+                                    <option value="">-- Selecciona Carpeta --</option>
+                                    ${this.carpetas.map(c => `<option value="${c.id_carpeta}">${c.no_carpeta_fisica} | ${c.etiqueta_identificadora}</option>`).join('')}
+                                </select>
+                            </div>
+
+                            <div class="md:col-span-3">
                                 <label for="filtroDocumentoCampo" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
-                                    <i class="fas fa-filter mr-2"></i>Buscar por
+                                    <i class="fas fa-filter mr-2 text-gray-600"></i>2. Filtrar por
                                 </label>
                                 <select 
                                     id="filtroDocumentoCampo" 
-                                    class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                                    disabled
+                                    class="w-full px-3 py-1.5 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition disabled:opacity-50 text-sm"
                                     style="background-color: var(--card-bg); color: var(--text-primary); border-color: var(--border-color);"
                                     onchange="archivoGeneralModule.cambiarTipoFiltroDocumento()"
                                 >
+                                    <option value="todos">Ver Todos</option>
                                     <option value="no_oficio">No. Oficio</option>
                                     <option value="emitido_por">Emitido Por</option>
                                     <option value="descripcion">Descripción</option>
-                                    <option value="fecha_oficio">Fecha de Oficio</option>
+                                    <option value="fecha_oficio">Fecha</option>
                                     <option value="estado">Estado</option>
                                 </select>
                             </div>
                             
-                            <!-- Contenedor único para valor de búsqueda (dinámico) -->
-                            <div class="md:col-span-5" id="contenedorValorDocumento"></div>
-                            
-                            <!-- Botones -->
-                            <div class="md:col-span-3 flex gap-2">
-                                <button 
-                                    onclick="archivoGeneralModule.buscarDocumentos()" 
-                                    class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold"
-                                >
-                                    <i class="fas fa-search mr-2"></i>Buscar
-                                </button>
-                                <button 
-                                    onclick="archivoGeneralModule.limpiarFiltroDocumento()" 
-                                    class="px-4 py-2 border-2 rounded-lg transition font-semibold"
-                                    style="color: var(--text-primary); border-color: var(--border-color); background-color: var(--bg-secondary);"
-                                >
-                                    <i class="fas fa-redo mr-2"></i>Limpiar
-                                </button>
+                            <div class="md:col-span-5 flex gap-2">
+                                <div class="flex-grow" id="contenedorValorDocumento">
+                                    <label class="block text-sm font-medium mb-2 text-transparent">Valor</label>
+                                    <input 
+                                        type="text" 
+                                        disabled
+                                        placeholder="Selecciona carpeta..."
+                                        class="w-full px-3 py-1.5 border-2 rounded-lg disabled:bg-gray-100 text-sm"
+                                    >
+                                </div>
+                                <div class="flex items-end pb-[1px]">
+                                    <button 
+                                        id="btnBuscarDoc"
+                                        onclick="archivoGeneralModule.aplicarFiltrosDocumentos()" 
+                                        disabled
+                                        class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:opacity-50 font-semibold shadow-md"
+                                    >
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         
-                        <!-- Contenedor para toast de búsqueda de documentos -->
-                        <div id="toastBusquedaDocumentoContainer" style="min-height: 20px; display: flex; justify-content: center; align-items: center; margin: 10px 0;"></div>
+                        <div id="toastBusquedaDocumentoContainer" class="mt-2 flex justify-center"></div>
                     </div>
                     
-                    <div id="tablaDocumentosContainer" style="overflow-x: auto;">
-                        ${await this.renderizarTablaDocumentos()}
+                    <div id="tablaDocumentosContainer" class="overflow-x-auto min-h-[200px]">
+                        <div class="flex flex-col items-center justify-center h-48 text-gray-400">
+                            <i class="fas fa-folder-open text-5xl mb-3 opacity-50"></i>
+                            <p>Selecciona una carpeta arriba para visualizar sus documentos</p>
+                        </div>
                     </div>
                 </div>
             </div>
         `;
     },
+    /**
+     * NUEVA FUNCIÓN: Se ejecuta al cambiar el primer combo (Carpeta)
+     * Carga todos los documentos de esa carpeta vía AJAX
+     */
+    /**
+     * Se ejecuta al cambiar la carpeta en el filtro de búsqueda
+     */
+/**
+     * Se ejecuta al cambiar la carpeta en el filtro (Versión Segura)
+     */
+ async cambiarCarpetaBusqueda() {
+        const elSelect = document.getElementById('filtroBusquedaCarpeta');
+        const container = document.getElementById('tablaDocumentosContainer');
+        const combo = document.getElementById('filtroDocumentoCampo');
+        const btn = document.getElementById('btnBuscarDoc');
 
+        // SEGURIDAD: Si no existe el contenedor, salimos sin error
+        if (!elSelect || !container) {
+            console.warn('Elementos de la interfaz no encontrados. Asegúrate de recargar mostrarFormularioDocumento');
+            return;
+        }
+
+        const idCarpeta = elSelect.value;
+
+        if (!idCarpeta) {
+            if(combo) { combo.disabled = true; combo.value = 'todos'; }
+            if(btn) btn.disabled = true;
+            this.cambiarTipoFiltroDocumento();
+            
+            container.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-48 text-gray-400">
+                    <i class="fas fa-folder-open text-5xl mb-3 opacity-50"></i>
+                    <p>Selecciona una carpeta arriba para visualizar sus documentos</p>
+                </div>`;
+            return;
+        }
+
+        // Loading
+        container.innerHTML = `
+            <div class="flex justify-center items-center h-48">
+                <i class="fas fa-spinner fa-spin text-4xl text-purple-600"></i>
+                <span class="ml-3 text-lg text-gray-600">Cargando documentos...</span>
+            </div>
+        `;
+
+        await this.cargarDocumentosPorCarpeta(idCarpeta);
+        
+        // Copia de seguridad para filtrar
+        this.documentosFiltrados = [...this.documentosPorCarpeta];
+
+        if(combo) combo.disabled = false;
+        if(btn) btn.disabled = false;
+
+        await this.renderizarTablaDocumentosFiltrados(true);
+        this.cambiarTipoFiltroDocumento();
+
+        const total = this.documentosPorCarpeta.length;
+        if (total > 0) this.mostrarToastBusquedaDocumento(`${total} documentos encontrados`, 'success');
+        else this.mostrarToastBusquedaDocumento('Carpeta vacía', 'info');
+    },
+
+    /**
+     * MODIFICADA: Cambiar tipo de filtro de documento (Nivel 2)
+     * Actualiza el input de valor (Nivel 3) dinámicamente
+     */
+    cambiarTipoFiltroDocumento() {
+        const campo = document.getElementById('filtroDocumentoCampo').value;
+        const contenedor = document.getElementById('contenedorValorDocumento');
+        const btnBuscar = document.getElementById('btnBuscarDoc');
+        
+        // Limpiar contenedor
+        contenedor.innerHTML = '';
+        
+        // Si selecciona "Ver Todos", deshabilitamos el input de valor pero habilitamos el botón para resetear
+        if (campo === 'todos') {
+            contenedor.innerHTML = `
+                <label class="block text-sm font-medium mb-2 text-gray-400">Sin filtro adicional</label>
+                <input type="text" disabled value="Mostrando todos los documentos" class="w-full px-4 py-2 border-2 rounded-lg bg-gray-100 text-gray-500 italic">
+            `;
+            // Ejecutar filtro inmediatamente para UX fluida
+            this.aplicarFiltrosDocumentos(); 
+            return;
+        }
+
+        let htmlInput = '';
+
+        switch(campo) {
+            case 'estado':
+                htmlInput = `
+                    <label for="filtroDocumentoValor" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
+                        <i class="fas fa-info-circle mr-2"></i>Selecciona Estado
+                    </label>
+                    <select id="filtroDocumentoValor" class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition" style="background-color: var(--card-bg); color: var(--text-primary); border-color: var(--border-color);">
+                        <option value="pendiente">📋 Pendiente</option>
+                        <option value="en_revision">🔍 En Revisión</option>
+                        <option value="archivado">📦 Archivado</option>
+                        <option value="cancelado">❌ Cancelado</option>
+                    </select>
+                `;
+                break;
+                
+            case 'fecha_oficio':
+                htmlInput = `
+                    <label for="filtroDocumentoValor" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
+                        <i class="fas fa-calendar mr-2"></i>Selecciona Fecha
+                    </label>
+                    <input type="date" id="filtroDocumentoValor" class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition" style="background-color: var(--card-bg); color: var(--text-primary); border-color: var(--border-color);">
+                `;
+                break;
+                
+            default:
+                htmlInput = `
+                    <label for="filtroDocumentoValor" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
+                        <i class="fas fa-search mr-2"></i>Escribe para buscar
+                    </label>
+                    <input type="text" id="filtroDocumentoValor" placeholder="Ej: OF-2024..." class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition" style="background-color: var(--card-bg); color: var(--text-primary); border-color: var(--border-color);">
+                `;
+                break;
+        }
+
+        contenedor.innerHTML = htmlInput;
+        
+        // Agregar listener para búsqueda al presionar Enter en inputs de texto
+        const nuevoInput = document.getElementById('filtroDocumentoValor');
+        if (nuevoInput && (nuevoInput.tagName === 'INPUT')) {
+            nuevoInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.aplicarFiltrosDocumentos();
+            });
+        }
+    },
+/**
+     * Aplica filtros (Versión Segura)
+     */
+    async aplicarFiltrosDocumentos() {
+        // Validaciones de elementos DOM
+        const elCampo = document.getElementById('filtroDocumentoCampo');
+        const elValor = document.getElementById('filtroDocumentoValor');
+        
+        if (!elCampo) return;
+
+        const campo = elCampo.value;
+        
+        // Caso "Ver Todos"
+        if (campo === 'todos') {
+            this.documentosFiltrados = [...(this.documentosPorCarpeta || [])];
+            this.mostrarToastBusquedaDocumento('Mostrando todos los documentos', 'info');
+            await this.renderizarTablaDocumentosFiltrados();
+            return;
+        }
+        
+        // Validación de input
+        if (!elValor) return;
+        const valorBusqueda = elValor.value ? elValor.value.trim().toLowerCase() : '';
+
+        if (!valorBusqueda) {
+            this.mostrarToastBusquedaDocumento('Ingresa un valor para buscar', 'error');
+            return;
+        }
+
+        // Filtrado seguro (usa EAV structure)
+        this.documentosFiltrados = (this.documentosPorCarpeta || []).filter(doc => {
+            // Aseguramos que doc existe
+            if (!doc) return false;
+
+            switch(campo) {
+                case 'no_oficio':
+                    if (!doc.valores) return false;
+                    let valorOficio = null;
+                    if (Array.isArray(doc.valores)) {
+                        valorOficio = doc.valores.find(v => v.nombre_campo === 'No. Oficio');
+                    } else if (typeof doc.valores === 'object') {
+                        valorOficio = Object.values(doc.valores).find(v => v.nombre_campo === 'No. Oficio');
+                    }
+                    const noOficio = valorOficio ? valorOficio.valor : '';
+                    return noOficio.toLowerCase().includes(valorBusqueda);
+                
+                case 'emitido_por':
+                    if (!doc.valores) return false;
+                    let valorEmitido = null;
+                    if (Array.isArray(doc.valores)) {
+                        valorEmitido = doc.valores.find(v => v.nombre_campo === 'Emitido Por');
+                    } else if (typeof doc.valores === 'object') {
+                        valorEmitido = Object.values(doc.valores).find(v => v.nombre_campo === 'Emitido Por');
+                    }
+                    const emitidoPor = valorEmitido ? valorEmitido.valor : '';
+                    return emitidoPor.toLowerCase().includes(valorBusqueda);
+                
+                case 'descripcion':
+                    if (!doc.valores) return false;
+                    let valorDescripcion = null;
+                    if (Array.isArray(doc.valores)) {
+                        valorDescripcion = doc.valores.find(v => v.nombre_campo === 'Descripción Asunto');
+                    } else if (typeof doc.valores === 'object') {
+                        valorDescripcion = Object.values(doc.valores).find(v => v.nombre_campo === 'Descripción Asunto');
+                    }
+                    const descripcion = valorDescripcion ? valorDescripcion.valor : '';
+                    return descripcion.toLowerCase().includes(valorBusqueda);
+                
+                case 'estado':
+                    return (doc.estado_gestion || '') === valorBusqueda;
+                
+                case 'fecha_oficio':
+                    const fechaDoc = doc.fecha_documento ? new Date(doc.fecha_documento).toISOString().split('T')[0] : '';
+                    return fechaDoc === valorBusqueda;
+                    
+                default:
+                    return true;
+            }
+        });
+
+        // Actualizar vista
+        await this.renderizarTablaDocumentosFiltrados();
+        
+        if (this.documentosFiltrados.length === 0) {
+            this.mostrarToastBusquedaDocumento('No se encontraron coincidencias', 'info');
+        } else {
+            this.mostrarToastBusquedaDocumento(`${this.documentosFiltrados.length} documentos encontrados`, 'success');
+        }
+    },
     /**
      * Renderizar campos dinámicos de auditoría
      */
@@ -1755,10 +2051,11 @@ const archivoGeneralModule = {
             const idCarpeta = formulario.get('id_carpeta');
             const noOficio = (formulario.get('no_oficio') || '').trim();
             const emitidoPor = (formulario.get('emitido_por') || '').trim();
-            const fechaOficio = formulario.get('fecha_oficio');
+            const fechaOficio = formulario.get('fecha_documento');
             const descripcion = (formulario.get('descripcion') || '').trim();
             const capturadoPor = (formulario.get('capturado_por') || '').trim();
             const auditoria = (formulario.get('auditoria') || '').trim();
+            const estadoGestion = formulario.get('estado_gestion') || 'pendiente';
 
             // Validar que haya carpeta seleccionada
             if (!idCarpeta) {
@@ -1802,15 +2099,16 @@ const archivoGeneralModule = {
                 id_carpeta: parseInt(idCarpeta),
                 auditoria: auditoria,
                 emitido_por: emitidoPor,
-                fecha_oficio: fechaOficio,
+                fecha_documento: fechaOficio,
                 descripcion: descripcion,
-                capturado_por: capturadoPor
+                capturado_por: capturadoPor,
+                estado_gestion: estadoGestion
             };
 
             console.log('📝 Registrando documento con datos:', datos);
 
             // Enviar a API
-            const resultado = await api.post('/documentos/crear', datos);
+            const resultado = await api.post('/documentos', datos);
 
             console.log('✅ Respuesta del servidor:', resultado);
 

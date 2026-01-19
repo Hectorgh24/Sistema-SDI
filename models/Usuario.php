@@ -39,7 +39,7 @@ class Usuario
     public function obtenerPorId($id_usuario)
     {
         $sql = "SELECT u.id_usuario, u.nombre, u.apellido_paterno, u.apellido_materno,
-                       u.email, u.estado, u.fecha_registro, r.nombre_rol, r.id_rol
+                       u.email, u.estado, u.fecha_registro, u.password_hash, r.nombre_rol, r.id_rol
                 FROM " . self::TABLE . " u
                 JOIN roles r ON u.id_rol = r.id_rol
                 WHERE u.id_usuario = :id";

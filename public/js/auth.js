@@ -161,7 +161,8 @@ const auth = {
             console.log('[AUTH] Cambiando contraseña...');
             return await api.post('/auth/cambiarPassword', {
                 password_actual: passwordActual,
-                password_nueva: passwordNueva
+                password_nueva: passwordNueva,
+                password_confirma: passwordNueva  // Agregar este campo que el backend espera
             });
         } catch (error) {
             this._logError('cambiarPassword', error);

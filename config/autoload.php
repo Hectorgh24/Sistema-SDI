@@ -77,6 +77,15 @@ spl_autoload_register(function ($class) {
         return true;
     }
 
+    // Buscar también en la carpeta controllers/ (para compatibilidad)
+    if (strpos($class, 'Controllers') !== false) {
+        $controllerFile = APP_ROOT . DIRECTORY_SEPARATOR . 'controllers' . DIRECTORY_SEPARATOR . basename($file);
+        if (file_exists($controllerFile)) {
+            require_once $controllerFile;
+            return true;
+        }
+    }
+
     return false;
 });
 
