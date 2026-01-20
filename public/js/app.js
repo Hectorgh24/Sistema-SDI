@@ -8,20 +8,11 @@
  */
 
 let moduloActual = 'dashboard';
-let professionalConverter = null;
 
 /**
  * Inicializar aplicación
  */
 async function initApp() {
-    // Inicializar conversor profesional
-    try {
-        professionalConverter = new ProfessionalWordToPDFConverter();
-        console.log('[APP] Conversor profesional inicializado');
-    } catch (error) {
-        console.error('[APP] Error inicializando conversor profesional:', error);
-    }
-    
     // Verificar autenticación
     const autenticado = await auth.verificar();
 
@@ -76,10 +67,10 @@ function obtenerOpcionesMenu() {
             modulo: 'archivo-general'
         },
         {
-            titulo: 'Herramientas',
-            descripcion: 'Utilidades y herramientas del sistema',
-            icono: 'fas fa-tools',
-            modulo: 'herramientas'
+            titulo: 'Responsable Técnico',
+            descripcion: 'Gestión técnica y soporte del sistema',
+            icono: 'fas fa-user-tie',
+            modulo: 'responsable-tecnico'
         }
     ];
 
@@ -155,14 +146,14 @@ async function cargarContenidoModulo(modulo) {
             case 'archivo-general':
                 html = await cargarArchivoGeneral();
                 break;
+            case 'responsable-tecnico':
+                html = await cargarResponsableTecnico();
+                break;
             case 'categorias':
                 html = await cargarCategorias();
                 break;
             case 'perfil':
                 html = await cargarPerfil();
-                break;
-            case 'herramientas':
-                html = await cargarHerramientas();
                 break;
             default:
                 html = '<p style="color: var(--text-primary);">Módulo no encontrado</p>';
@@ -249,6 +240,16 @@ async function cargarDashboard() {
                             </div>
                             <h3 class="text-3xl font-bold text-white mb-3 drop-shadow-md">Archivo General SDI</h3>
                             <p class="text-white text-opacity-95 mb-6 text-base leading-relaxed drop-shadow-sm">Categoría archivo general SDI</p>
+                        </div>
+                    </div>
+                    <div onclick="cargarModulo('responsable-tecnico')" 
+                         class="bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-xl shadow-lg p-10 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-2xl w-full sm:w-80 lg:w-96 min-h-[280px] flex flex-col justify-center">
+                        <div class="text-center">
+                            <div class="inline-flex items-center justify-center w-24 h-24 bg-white bg-opacity-35 rounded-full mb-6 shadow-lg hover:bg-opacity-45 transition-all duration-300">
+                                <i class="fas fa-user-tie text-5xl text-white drop-shadow-md"></i>
+                            </div>
+                            <h3 class="text-3xl font-bold text-white mb-3 drop-shadow-md">Responsable Técnico</h3>
+                            <p class="text-white text-opacity-95 mb-6 text-base leading-relaxed drop-shadow-sm">Gestión técnica y soporte del sistema</p>
                         </div>
                     </div>
                 </div>
@@ -511,312 +512,8 @@ async function cargarCategorias() {
 }
 
 /**
- * Cargar módulo de herramientas
+ * Cargar módulo de perfil
  */
-async function cargarHerramientas() {
-    const html = `
-        <div class="w-full max-w-6xl mx-auto">
-            <!-- Header del módulo -->
-            <div class="rounded-xl shadow-lg p-8 mb-8" style="background: linear-gradient(to right, var(--bg-tertiary), var(--card-bg)); border: 1px solid var(--border-color);">
-                <div class="flex items-center">
-                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full mr-4" style="background-color: var(--color-primary);">
-                        <i class="fas fa-tools text-2xl" style="color: white;"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-3xl font-bold" style="color: var(--text-primary);">Herramientas del Sistema</h1>
-                        <p class="text-lg" style="color: var(--text-secondary);">Utilidades y convertidores profesionales</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Contenedor dinámico para el conversor -->
-            <div id="submoduloHerramientas"></div>
-
-            <!-- Toast Container -->
-            <div id="herramientasToastContainer" class="fixed top-4 right-4 space-y-2 z-50"></div>
-        </div>
-    `;
-    
-    // Cargar automáticamente el conversor de archivos
-    setTimeout(async () => {
-        const contenedor = document.getElementById('submoduloHerramientas');
-        if (contenedor) {
-            contenedor.innerHTML = await cargarConversorArchivos();
-            // Inicializar el conversor después de cargar el HTML
-            setTimeout(() => {
-                configurarZonaSubida();
-            }, 100);
-        }
-    }, 100);
-    
-    return html;
-}
-
-/**
- * Cargar módulo conversor de archivos
- */
-async function cargarConversorArchivos() {
-    return `
-        <div class="rounded-xl shadow-lg p-8" style="background-color: var(--card-bg); border: 1px solid var(--border-color);">
-            <div class="flex items-center mb-6">
-                <div class="inline-flex items-center justify-center w-12 h-12 rounded-full mr-3" style="background-color: var(--color-primary);">
-                    <i class="fas fa-file-export text-lg" style="color: white;"></i>
-                </div>
-                <h2 class="text-2xl font-bold" style="color: var(--text-primary);">
-                    Convertidor Profesional de Archivos
-                </h2>
-            </div>
-            
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- Panel de configuración -->
-                <div>
-                    <h3 class="text-lg font-semibold mb-4" style="color: var(--text-primary);">
-                        <i class="fas fa-cog mr-2" style="color: var(--color-primary);"></i>
-                        Configuración de Conversión
-                    </h3>
-                    
-                    <!-- Tipo de archivo original -->
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
-                            <i class="fas fa-file-import mr-2"></i>Tipo de Archivo Original
-                        </label>
-                        <select id="tipoArchivoOriginal" class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" style="background-color: var(--bg-secondary); border-color: var(--border-color); color: var(--text-primary);">
-                            <option value="">Selecciona un tipo de archivo</option>
-                            <option value="pdf">📄 PDF</option>
-                            <option value="word">📝 Word (.docx)</option>
-                            <option value="excel">📊 Excel (.xlsx)</option>
-                            <option value="png">🖼️ PNG</option>
-                            <option value="jpg">📸 JPG/JPEG</option>
-                            <option value="txt">📄 Texto (.txt)</option>
-                        </select>
-                    </div>
-
-                    <!-- Formato de destino -->
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
-                            <i class="fas fa-file-export mr-2"></i>Convertir a Formato
-                        </label>
-                        <select id="formatoDestino" class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" style="background-color: var(--bg-secondary); border-color: var(--border-color); color: var(--text-primary);">
-                            <option value="">Selecciona el formato de destino</option>
-                        </select>
-                    </div>
-
-                    <!-- Área de subida -->
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
-                            <i class="fas fa-cloud-upload-alt mr-2"></i>Seleccionar Archivo
-                        </label>
-                        <div class="border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 hover:border-blue-400" id="dropZone" style="border-color: var(--border-color); background-color: var(--bg-secondary);">
-                            <input type="file" id="archivoInput" class="hidden" accept="">
-                            <i class="fas fa-cloud-upload-alt text-4xl mb-4 transition-colors" id="uploadIcon" style="color: var(--text-secondary);"></i>
-                            <p class="text-lg font-medium mb-2" style="color: var(--text-primary);">Arrastra tu archivo aquí</p>
-                            <p class="text-sm" style="color: var(--text-secondary);">o haz clic para seleccionar</p>
-                            <button type="button" onclick="document.getElementById('archivoInput').click()" class="mt-4 px-6 py-2 rounded-lg font-medium transition-all duration-300 hover:shadow-lg" style="background-color: var(--color-primary); color: white;">
-                                <i class="fas fa-folder-open mr-2"></i>Seleccionar Archivo
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Botón de conversión -->
-                    <button type="button" id="btnConvertir" onclick="convertirArchivo()" class="w-full py-3 px-6 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg" style="background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark)); color: white;" disabled>
-                        <i class="fas fa-sync-alt" id="btnIcono"></i>
-                        <span id="btnTexto">Convertir Archivo</span>
-                    </button>
-                </div>
-
-                <!-- Panel de información -->
-                <div>
-                    <h3 class="text-lg font-semibold mb-4" style="color: var(--text-primary);">
-                        <i class="fas fa-info-circle mr-2" style="color: var(--color-primary);"></i>
-                        Información del Archivo
-                    </h3>
-                    
-                    <div class="rounded-lg p-6 mb-6" style="background-color: var(--bg-secondary); border: 1px solid var(--border-color);">
-                        <div class="space-y-3">
-                            <div class="flex justify-between">
-                                <span style="color: var(--text-secondary);">Nombre:</span>
-                                <span id="infoNombre" style="color: var(--text-primary); font-medium;">-</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span style="color: var(--text-secondary);">Tamaño:</span>
-                                <span id="infoTamano" style="color: var(--text-primary); font-medium;">-</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span style="color: var(--text-secondary);">Tipo:</span>
-                                <span id="infoTipo" style="color: var(--text-primary); font-medium;">-</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span style="color: var(--text-secondary);">Estado:</span>
-                                <span id="infoEstado" style="color: var(--text-primary); font-medium;">Esperando archivo...</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Estado del sistema profesional -->
-                    <div class="rounded-lg p-6 mb-6" style="background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark)); border: 1px solid var(--color-primary);">
-                        <h4 class="text-white font-semibold mb-3">
-                            <i class="fas fa-rocket mr-2"></i>Sistema Profesional
-                        </h4>
-                        <div class="space-y-2">
-                            <div class="flex items-center text-white">
-                                <i class="fas fa-check-circle mr-2 text-green-300"></i>
-                                <span class="text-sm">Mammoth.js - Traductor Word → HTML</span>
-                            </div>
-                            <div class="flex items-center text-white">
-                                <i class="fas fa-check-circle mr-2 text-green-300"></i>
-                                <span class="text-sm">Puppeteer - Imprenta HTML → PDF</span>
-                            </div>
-                            <div class="flex items-center text-white">
-                                <i class="fas fa-check-circle mr-2 text-green-300"></i>
-                                <span class="text-sm">Calidad profesional garantizada</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Indicador de estado -->
-                    <div class="text-center">
-                        <div id="statusIndicator" class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium transition-all duration-300" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">
-                            <i class="fas fa-circle mr-2" id="statusDot"></i>
-                            <span id="statusText">Sistema listo</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-/**
- * Verificar estado del sistema
- */
-async function verificarSistema() {
-    console.log('[SISTEMA] Verificando estado del sistema...');
-    mostrarToastHerramientas('Verificando sistema...', 'info');
-    
-    // Simulación simple
-    setTimeout(() => {
-        mostrarToastHerramientas('Sistema verificado correctamente', 'success');
-    }, 1000);
-}
-
-/**
- * Optimizar sistema
- */
-async function optimizarSistema() {
-    console.log('[SISTEMA] Iniciando optimización...');
-    mostrarToastHerramientas('Optimizando sistema...', 'info');
-    
-    setTimeout(() => {
-        mostrarToastHerramientas('Sistema optimizado correctamente', 'success');
-    }, 1000);
-}
-
-/**
- * Limpiar sistema
- */
-async function limpiarSistema() {
-    console.log('[SISTEMA] Iniciando limpieza...');
-    mostrarToastHerramientas('Limpiando sistema...', 'info');
-    
-    setTimeout(() => {
-        mostrarToastHerramientas('Sistema limpiado correctamente', 'success');
-    }, 1000);
-}
-
-/**
- * Descargar archivo convertido
- */
-function descargarArchivoConvertido(datos) {
-    try {
-        console.log('[DESCARGA] Iniciando descarga del archivo convertido');
-        console.log('[DESCARGA] Datos recibidos:', {
-            nombre: datos.nombre,
-            mime_type: datos.mime_type,
-            tamaño_contenido: datos.contenido ? datos.contenido.length : 0
-        });
-        
-        // Validar que exista el contenido
-        if (!datos.contenido) {
-            console.error('[DESCARGA] Error: No hay contenido en los datos recibidos');
-            mostrarToastHerramientas('Error: No hay contenido para descargar', 'error');
-            return;
-        }
-        
-        // Decodificar contenido base64
-        let contenido;
-        try {
-            contenido = atob(datos.contenido);
-            console.log('[DESCARGA] Contenido decodificado exitosamente, longitud:', contenido.length);
-        } catch (error) {
-            console.error('[DESCARGA] Error decodificando base64:', error);
-            mostrarToastHerramientas('Error: El contenido del archivo está corrupto', 'error');
-            return;
-        }
-        
-        // Convertir a bytes
-        const bytes = new Uint8Array(contenido.length);
-        for (let i = 0; i < contenido.length; i++) {
-            bytes[i] = contenido.charCodeAt(i);
-        }
-        
-        // Crear blob
-        const blob = new Blob([bytes], { type: datos.mime_type });
-        console.log('[DESCARGA] Blob creado, tamaño:', blob.size, 'bytes');
-        
-        // Crear URL de descarga
-        const url = window.URL.createObjectURL(blob);
-        
-        // Crear enlace de descarga
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = datos.nombre;
-        a.style.display = 'none';
-        
-        // Simular clic
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        
-        // Limpiar URL
-        window.URL.revokeObjectURL(url);
-        
-        console.log('[DESCARGA] Archivo descargado exitosamente:', datos.nombre);
-        mostrarToastHerramientas('Archivo descargado exitosamente: ' + datos.nombre, 'success');
-        
-    } catch (error) {
-        console.error('[DESCARGA] Error general:', error);
-        mostrarToastHerramientas('Error descargando el archivo: ' + error.message, 'error');
-    }
-}
-
-/**
- * Mostrar toast de herramientas
- */
-function mostrarToastHerramientas(mensaje, tipo = 'error') {
-    const toastContainer = document.getElementById('herramientasToastContainer');
-    
-    const colores = tipo === 'success' 
-        ? 'bg-green-100 border border-green-400 text-green-700'
-        : 'bg-red-100 border border-red-400 text-red-700';
-    
-    const icono = tipo === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
-    
-    const toast = document.createElement('div');
-    toast.className = `${colores} px-4 py-3 rounded-lg shadow-lg mb-2`;
-    toast.innerHTML = `
-        <div class="flex items-center">
-            <i class="fas ${icono} mr-2"></i>
-            <span>${mensaje}</span>
-        </div>
-    `;
-    
-    toastContainer.innerHTML = '';
-    toastContainer.appendChild(toast);
-    
-    setTimeout(() => {
-        toastContainer.innerHTML = '';
-    }, 3000);
-}
 async function cargarPerfil() {
     const usuario = auth.getUsuario();
 
@@ -1099,93 +796,150 @@ function eliminarUsuario(id) {
 }
 
 /**
- * Convertir archivo (SISTEMA PROFESIONAL ÚNICAMENTE)
+ * Cargar módulo Responsable Técnico
  */
-async function convertirArchivo() {
-    console.log('[CONVERSIÓN] Iniciando proceso de conversión profesional...');
-    
-    const archivoInput = document.getElementById('archivoInput');
-    const formatoDestino = document.getElementById('formatoDestino').value;
-    
-    // Validar archivo
-    if (!archivoInput || !archivoInput.files || !archivoInput.files.length) {
-        mostrarToastHerramientas('Por favor selecciona un archivo', 'error');
-        return;
-    }
-    
-    const archivo = archivoInput.files[0];
-    
-    // Validar tamaño (50MB máximo)
-    const maxSize = 50 * 1024 * 1024;
-    if (archivo.size > maxSize) {
-        mostrarToastHerramientas('El archivo es demasiado grande. Máximo 50MB', 'error');
-        return;
-    }
-    
-    // Validar formato de destino
-    if (!formatoDestino) {
-        mostrarToastHerramientas('Por favor selecciona un formato de destino', 'error');
-        return;
-    }
-    
-    // VERIFICAR QUE SEA WORD A PDF - ÚNICA CONVERSIÓN SOPORTADA
-    const isWordFile = archivo.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-                       archivo.type === 'application/msword';
-    
-    if (!isWordFile) {
-        mostrarToastHerramientas('Sistema profesional solo soporta archivos Word (.docx, .doc)', 'error');
-        return;
-    }
-    
-    if (formatoDestino !== 'pdf') {
-        mostrarToastHerramientas('Sistema profesional solo convierte Word a PDF', 'error');
-        return;
-    }
-    
-    if (!professionalConverter) {
-        mostrarToastHerramientas('Error: Sistema profesional no inicializado. Ejecuta instalacion-dependencias.bat', 'error');
-        return;
-    }
-    
-    // USAR SISTEMA PROFESIONAL ÚNICAMENTE
-    await convertirWordProfesional(archivo);
+async function cargarResponsableTecnico() {
+    return `
+        <div class="w-full max-w-6xl mx-auto">
+            <!-- Header del módulo -->
+            <div class="rounded-xl shadow-lg p-8 mb-8" style="background: linear-gradient(to right, var(--bg-tertiary), var(--card-bg)); border: 1px solid var(--border-color);">
+                <div class="flex items-center">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full mr-4" style="background-color: var(--color-primary);">
+                        <i class="fas fa-user-tie text-2xl" style="color: white;"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl font-bold" style="color: var(--text-primary);">Responsable Técnico</h1>
+                        <p class="text-lg" style="color: var(--text-secondary);">Gestión técnica y soporte del sistema</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contenido principal -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Tarjeta de Estado del Sistema -->
+                <div class="rounded-xl shadow-lg p-6" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+                    <div class="flex items-center mb-4">
+                        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full mr-3" style="background-color: #10b981;">
+                            <i class="fas fa-server text-white text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold" style="color: var(--text-primary);">Estado del Sistema</h3>
+                    </div>
+                    <p class="mb-4" style="color: var(--text-secondary);">Monitoreo del estado general del sistema</p>
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span style="color: var(--text-secondary);">Servidor Web</span>
+                            <span class="px-2 py-1 rounded-full text-xs font-semibold" style="background-color: #10b981; color: white;">Activo</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span style="color: var(--text-secondary);">Base de Datos</span>
+                            <span class="px-2 py-1 rounded-full text-xs font-semibold" style="background-color: #10b981; color: white;">Conectada</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span style="color: var(--text-secondary);">Sistema Archivos</span>
+                            <span class="px-2 py-1 rounded-full text-xs font-semibold" style="background-color: #10b981; color: white;">Operativo</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tarjeta de Soporte -->
+                <div class="rounded-xl shadow-lg p-6" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+                    <div class="flex items-center mb-4">
+                        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full mr-3" style="background-color: #3b82f6;">
+                            <i class="fas fa-headset text-white text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold" style="color: var(--text-primary);">Soporte Técnico</h3>
+                    </div>
+                    <p class="mb-4" style="color: var(--text-secondary);">Gestión de solicitudes de soporte</p>
+                    <div class="space-y-3">
+                        <button class="w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-md" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white;">
+                            <i class="fas fa-plus mr-2"></i>Nueva Solicitud
+                        </button>
+                        <button class="w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-md" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color);">
+                            <i class="fas fa-list mr-2"></i>Ver Solicitudes
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tarjeta de Mantenimiento -->
+                <div class="rounded-xl shadow-lg p-6" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+                    <div class="flex items-center mb-4">
+                        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full mr-3" style="background-color: #f59e0b;">
+                            <i class="fas fa-tools text-white text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold" style="color: var(--text-primary);">Mantenimiento</h3>
+                    </div>
+                    <p class="mb-4" style="color: var(--text-secondary);">Herramientas de mantenimiento del sistema</p>
+                    <div class="space-y-3">
+                        <button class="w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-md" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white;">
+                            <i class="fas fa-broom mr-2"></i>Limpiar Caché
+                        </button>
+                        <button class="w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-md" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color);">
+                            <i class="fas fa-database mr-2"></i>Optimizar BD
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tarjeta de Reportes -->
+                <div class="rounded-xl shadow-lg p-6" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+                    <div class="flex items-center mb-4">
+                        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full mr-3" style="background-color: #8b5cf6;">
+                            <i class="fas fa-chart-bar text-white text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold" style="color: var(--text-primary);">Reportes</h3>
+                    </div>
+                    <p class="mb-4" style="color: var(--text-secondary);">Generación de reportes técnicos</p>
+                    <div class="space-y-3">
+                        <button class="w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-md" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white;">
+                            <i class="fas fa-file-alt mr-2"></i>Reporte Sistema
+                        </button>
+                        <button class="w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-md" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color);">
+                            <i class="fas fa-download mr-2"></i>Exportar Datos
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tarjeta de Configuración -->
+                <div class="rounded-xl shadow-lg p-6" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+                    <div class="flex items-center mb-4">
+                        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full mr-3" style="background-color: #ef4444;">
+                            <i class="fas fa-cog text-white text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold" style="color: var(--text-primary);">Configuración</h3>
+                    </div>
+                    <p class="mb-4" style="color: var(--text-secondary);">Configuración técnica del sistema</p>
+                    <div class="space-y-3">
+                        <button class="w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-md" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white;">
+                            <i class="fas fa-sliders-h mr-2"></i>Parámetros
+                        </button>
+                        <button class="w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-md" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color);">
+                            <i class="fas fa-key mr-2"></i>Seguridad
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tarjeta de Logs -->
+                <div class="rounded-xl shadow-lg p-6" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+                    <div class="flex items-center mb-4">
+                        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full mr-3" style="background-color: #6b7280;">
+                            <i class="fas fa-file-alt text-white text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold" style="color: var(--text-primary);">Logs del Sistema</h3>
+                    </div>
+                    <p class="mb-4" style="color: var(--text-secondary);">Visualización de logs y eventos</p>
+                    <div class="space-y-3">
+                        <button class="w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-md" style="background: linear-gradient(135deg, #6b7280, #4b5563); color: white;">
+                            <i class="fas fa-eye mr-2"></i>Ver Logs
+                        </button>
+                        <button class="w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-md" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color);">
+                            <i class="fas fa-download mr-2"></i>Descargar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
 }
 
-/**
- * Convertir Word a PDF con sistema profesional (SIN FALLBACK)
- */
-async function convertirWordProfesional(archivo) {
-    const btnConvertir = document.getElementById('btnConvertir');
-    const btnTexto = document.getElementById('btnTexto');
-    const btnIcono = document.getElementById('btnIcono');
-    
-    // Mostrar estado de procesando
-    btnConvertir.disabled = true;
-    btnTexto.textContent = 'Convirtiendo...';
-    btnIcono.className = 'fas fa-spinner fa-spin';
-    document.getElementById('infoEstado').textContent = 'Convirtiendo con sistema profesional...';
-    
-    try {
-        await professionalConverter.convertWordToPDF(archivo);
-        
-        // Actualizar estado
-        document.getElementById('infoEstado').textContent = 'Conversión profesional completada';
-        mostrarToastHerramientas('✅ Documento convertido exitosamente', 'success');
-        
-    } catch (error) {
-        console.error('[CONVERSIÓN] Error en conversión profesional:', error);
-        document.getElementById('infoEstado').textContent = 'Error en conversión profesional';
-        
-        // Mensaje de error específico sin fallback
-        mostrarToastHerramientas('❌ Error en conversión profesional. Verifica que ejecutaste instalacion-dependencias.bat', 'error');
-        
-    } finally {
-        // Restaurar estado
-        btnConvertir.disabled = false;
-        btnTexto.textContent = 'Convertir Archivo';
-        btnIcono.className = 'fas fa-sync-alt';
-    }
-}
 function mostrarFormularioNuevoDocumento() { ui.toast('Funcionalidad en desarrollo', 'info'); }
 function verDocumento() { ui.toast('Funcionalidad en desarrollo', 'info'); }
 function mostrarFormularioNuevaCarpeta() { ui.toast('Funcionalidad en desarrollo', 'info'); }

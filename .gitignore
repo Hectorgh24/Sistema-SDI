@@ -1,15 +1,3 @@
-# Dependencias de Node.js
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-package-lock.json
-yarn.lock
-
-# Dependencias de Composer (PHP)
-vendor/
-composer.lock
-
 # Archivos de configuración sensibles
 config/db.php
 
@@ -32,17 +20,6 @@ access.log
 tmp/
 temp/
 cache/
-
-# Archivos generados por Puppeteer
-*.pdf
-test-puppeteer.pdf
-puppeteer-temp/
-puppeteer-scripts/
-
-# Archivos de instalación
-install-dependencies.bat
-instalar-sistema.bat
-instalar-dependencias.bat
 
 # IDE
 .vscode/
@@ -82,13 +59,6 @@ generated/
 output/
 dist/
 build/
-
-# Archivos específicos del proyecto SDI
-conversion-temp/
-temp-conversion/
-scripts-temp/
-conversion-logs/
-puppeteer-logs/
 
 # Archivos de documentación
 Requerimientos y logica de negocio-SDI.pdf

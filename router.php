@@ -193,9 +193,7 @@ class Router
             'documentos' => 'DocumentoController',
             'carpetas'   => 'CarpetaController',
             'categorias' => 'CategoriaController',
-            'dashboard'  => 'DashboardController',
-            'conversion' => 'ConversionController',
-            'professional' => 'ProfessionalConversionController'
+            'dashboard'  => 'DashboardController'
         ];
 
         // Determinar controlador
@@ -235,26 +233,6 @@ class Router
         // Casos especiales para endpoints personalizados
         if ($modulo === 'documentos' && $metodo === 'por-carpeta') {
             return 'porCarpeta';
-        }
-        
-        // Caso especial para conversión
-        if ($modulo === 'conversion' && $metodo === 'convertir') {
-            return 'convertir';
-        }
-        
-        // Caso especial para conversión profesional
-        if ($modulo === 'professional' && $metodo === 'word-to-pdf-puppeteer') {
-            return 'wordToPdfWithPuppeteer';
-        }
-        
-        // Caso especial para verificar disponibilidad de Puppeteer
-        if ($modulo === 'professional' && $metodo === 'check-puppeteer') {
-            return 'checkPuppeteerAvailability';
-        }
-        
-        // Caso especial para instalar Puppeteer
-        if ($modulo === 'professional' && $metodo === 'install-puppeteer') {
-            return 'installPuppeteer';
         }
 
         // Métodos por defecto según verbo HTTP
