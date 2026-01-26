@@ -18,6 +18,8 @@ const usuariosModule = {
     paginaActual: 1,
     limite: 20,
     modalAbierto: null,
+    busquedaActual: '',
+    campoActual: 'nombre',
 
     /**
      * Inicializar módulo de usuarios
@@ -38,35 +40,51 @@ const usuariosModule = {
             }
         } catch (error) {
             console.error('[USUARIOS] Error cargando roles:', error);
-            ui.toast('Error al cargar roles', 'error');
+            ui.toast('Error al cargar roles. Por favor, inténtelo de nuevo.', 'error');
         }
     },
 
     /**
      * Cargar lista de usuarios
      */
-    async cargarUsuarios() {
+    async cargarUsuarios(busqueda = null, campo = null) {
         try {
             // Asegurar que los roles estén cargados
             if (this.roles.length === 0) {
                 await this.cargarRoles();
             }
 
-            const resultado = await api.get('/usuarios', {
+            const params = {
                 page: this.paginaActual,
                 limit: this.limite
-            });
+            };
+            
+            // Agregar parámetros de búsqueda si existen
+            if (busqueda) {
+                params.busqueda = busqueda;
+                params.campo = campo;
+            }
+
+            const resultado = await api.get('/usuarios', params);
 
             if (resultado.success) {
                 this.usuarios = resultado.data.usuarios || [];
+                
+                // Verificar si hay resultados en búsquedas
+                if (busqueda && this.usuarios.length === 0) {
+                    this.mostrarToastSinResultados(campo, busqueda);
+                } else if (busqueda && this.usuarios.length > 0) {
+                    this.mostrarToastConResultados(campo, busqueda, this.usuarios.length);
+                }
+                
                 return this.renderizarLista();
             } else {
-                ui.toast('Error al cargar usuarios', 'error');
+                ui.toast('Error al cargar usuarios. Por favor, inténtelo de nuevo.', 'error');
                 return '<p style="color: var(--text-primary);">Error cargando usuarios</p>';
             }
         } catch (error) {
             console.error('[USUARIOS] Error cargando usuarios:', error);
-            ui.toast('Error al cargar usuarios', 'error');
+            ui.toast('Error al cargar usuarios. Por favor, inténtelo de nuevo.', 'error');
             return '<p style="color: var(--text-primary);">Error cargando usuarios</p>';
         }
     },
@@ -77,47 +95,186 @@ const usuariosModule = {
     renderizarLista() {
         if (this.usuarios.length === 0) {
             return `
-                <div class="rounded-lg shadow p-8 text-center" style="background-color: var(--card-bg); border: 1px solid var(--border-color);">
-                    <i class="fas fa-users text-6xl mb-4" style="color: var(--text-tertiary);"></i>
-                    <h2 class="text-xl font-bold mb-2" style="color: var(--text-primary);">No hay usuarios registrados</h2>
-                    <p class="mb-6" style="color: var(--text-secondary);">Comienza agregando un nuevo usuario</p>
-                    <button onclick="usuariosModule.mostrarFormularioCrear()" 
-                            class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                        <i class="fas fa-plus mr-2"></i>Agregar Primer Usuario
-                    </button>
+                <div class="w-full flex flex-col items-center" style="min-height: 100vh; padding: 20px;">
+                    <div class="w-full max-w-6xl rounded-lg shadow p-6 md:p-8" style="background-color: var(--card-bg); border: 1px solid var(--border-color);">
+                        <!-- Encabezado centrado -->
+                        <div class="text-center mb-8">
+                            <h1 class="text-3xl md:text-4xl font-bold mb-2" style="color: var(--text-primary);">
+                                <i class="fas fa-users mr-3" style="color: #3b82f6;"></i>Gestión de Usuarios
+                            </h1>
+                            <p class="text-base md:text-lg" style="color: var(--text-secondary);">Administra los usuarios del sistema</p>
+                        </div>
+
+                        <!-- Sección de Búsqueda y Filtros -->
+                        <div class="mb-8 flex justify-center">
+                            <div class="w-full max-w-4xl bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(99, 102, 241, 0.05) 100%);">
+                                <div class="flex items-center justify-center mb-4">
+                                    <i class="fas fa-search text-2xl mr-3" style="color: #3b82f6;"></i>
+                                    <h3 class="text-lg font-semibold" style="color: var(--text-primary);">Filtros de Búsqueda</h3>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                                    <!-- Campo de Búsqueda -->
+                                    <div class="md:col-span-4">
+                                        <label for="filtroCampo" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
+                                            <i class="fas fa-filter mr-2"></i>Buscar por
+                                        </label>
+                                        <select 
+                                            id="filtroCampo" 
+                                            class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                                            style="background-color: var(--card-bg); color: var(--text-primary); border-color: var(--border-color);"
+                                            onchange="usuariosModule.cambiarTipoFiltro()"
+                                        >
+                                            <option value="nombre">Nombre</option>
+                                            <option value="email">Email</option>
+                                            <option value="rol">Rol</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <!-- Contenedor para valor de búsqueda (dinámico) -->
+                                    <div class="md:col-span-5" id="contenedorValor"></div>
+                                    
+                                    <!-- Botones -->
+                                    <div class="md:col-span-3 flex gap-2">
+                                        <button 
+                                            onclick="usuariosModule.buscarUsuarios()" 
+                                            class="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition font-medium shadow-md hover:shadow-lg"
+                                        >
+                                            <i class="fas fa-search mr-2"></i>Buscar
+                                        </button>
+                                        <button 
+                                            onclick="usuariosModule.limpiarFiltro()" 
+                                            class="flex-1 px-4 py-2 border-2 rounded-lg transition font-medium"
+                                            style="color: var(--text-primary); border-color: var(--border-color); background-color: var(--bg-secondary);"
+                                        >
+                                            <i class="fas fa-times mr-2"></i>Limpiar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Contenedor para toast de búsqueda -->
+                        <div id="toastBusquedaContainer" style="min-height: 20px; display: flex; justify-content: center; align-items: center; margin: 10px 0;"></div>
+
+                        <!-- Mensaje de no usuarios -->
+                        <div class="rounded-lg shadow p-8 text-center" style="background-color: var(--card-bg); border: 1px solid var(--border-color);">
+                            <i class="fas fa-users text-6xl mb-4" style="color: var(--text-tertiary);"></i>
+                            <h2 class="text-xl font-bold mb-2" style="color: var(--text-primary);">No hay usuarios registrados</h2>
+                            <p class="mb-6" style="color: var(--text-secondary);">Comienza agregando un nuevo usuario</p>
+                            <button onclick="usuariosModule.mostrarFormularioCrear()" 
+                                    class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                                <i class="fas fa-plus mr-2"></i>Agregar Primer Usuario
+                            </button>
+                        </div>
+                    </div>
                 </div>
             `;
         }
 
         let html = `
-            <div class="rounded-xl shadow-2xl overflow-hidden" style="background-color: var(--card-bg); border: 1px solid var(--border-color);">
-                <!-- Header -->
-                <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div>
-                            <h1 class="text-2xl md:text-3xl font-bold text-white">Gestionar Usuarios</h1>
-                            <p class="text-blue-100 text-sm mt-1">Total: ${this.usuarios.length} usuario(s)</p>
+            <div class="w-full flex flex-col items-center" style="min-height: 100vh; padding: 20px;">
+                <div class="w-full max-w-6xl rounded-lg shadow p-6 md:p-8" style="background-color: var(--card-bg); border: 1px solid var(--border-color);">
+                    <!-- Encabezado centrado -->
+                    <div class="text-center mb-8">
+                        <h1 class="text-3xl md:text-4xl font-bold mb-2" style="color: var(--text-primary);">
+                            <i class="fas fa-users mr-3" style="color: #3b82f6;"></i>Gestión de Usuarios
+                        </h1>
+                        <p class="text-base md:text-lg" style="color: var(--text-secondary);">Administra los usuarios del sistema</p>
+                    </div>
+
+                    <!-- Sección de Búsqueda y Filtros -->
+                    <div class="mb-8 flex justify-center">
+                        <div class="w-full max-w-4xl bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(99, 102, 241, 0.05) 100%);">
+                            <div class="flex items-center justify-center mb-4">
+                                <i class="fas fa-search text-2xl mr-3" style="color: #3b82f6;"></i>
+                                <h3 class="text-lg font-semibold" style="color: var(--text-primary);">Filtros de Búsqueda</h3>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                                <!-- Campo de Búsqueda -->
+                                <div class="md:col-span-4">
+                                    <label for="filtroCampo" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
+                                        <i class="fas fa-filter mr-2"></i>Buscar por
+                                    </label>
+                                    <select 
+                                        id="filtroCampo" 
+                                        class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                                        style="background-color: var(--card-bg); color: var(--text-primary); border-color: var(--border-color);"
+                                        onchange="usuariosModule.cambiarTipoFiltro()"
+                                    >
+                                        <option value="nombre">Nombre</option>
+                                        <option value="email">Email</option>
+                                        <option value="rol">Rol</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Contenedor para valor de búsqueda (dinámico) -->
+                                <div class="md:col-span-5" id="contenedorValor"></div>
+                                
+                                <!-- Botones -->
+                                <div class="md:col-span-3 flex gap-2">
+                                    <button 
+                                        onclick="usuariosModule.buscarUsuarios()" 
+                                        class="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition font-medium shadow-md hover:shadow-lg"
+                                    >
+                                        <i class="fas fa-search mr-2"></i>Buscar
+                                    </button>
+                                    <button 
+                                        onclick="usuariosModule.limpiarFiltro()" 
+                                        class="flex-1 px-4 py-2 border-2 rounded-lg transition font-medium"
+                                        style="color: var(--text-primary); border-color: var(--border-color); background-color: var(--bg-secondary);"
+                                    >
+                                        <i class="fas fa-times mr-2"></i>Limpiar
+                                    </button>
+                                </div>
+                            </div>
                         </div>
+                    </div>
+                    
+                    <!-- Contenedor para toast de búsqueda -->
+                    <div id="toastBusquedaContainer" style="min-height: 20px; display: flex; justify-content: center; align-items: center; margin: 10px 0;"></div>
+
+                    <!-- Botón de agregar usuario -->
+                    <div class="flex justify-center mb-6">
                         <button onclick="usuariosModule.mostrarFormularioCrear()" 
-                                class="px-6 py-3 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition font-semibold shadow-lg hover:shadow-xl transform hover:scale-105">
+                                class="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition font-semibold shadow-lg hover:shadow-xl transform hover:scale-105">
                             <i class="fas fa-plus mr-2"></i>Nuevo Usuario
                         </button>
                     </div>
-                </div>
 
-                <!-- Tabla de usuarios -->
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead style="background-color: var(--bg-tertiary); border-bottom: 1px solid var(--border-color);">
-                            <tr>
-                                <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style="color: var(--text-primary);">Nombre Completo</th>
-                                <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style="color: var(--text-primary);">Email</th>
-                                <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style="color: var(--text-primary);">Rol</th>
-                                <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style="color: var(--text-primary);">Estado</th>
-                                <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style="color: var(--text-primary);">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody style="background-color: var(--card-bg);" class="divide-y">
+                    <!-- Tabla de usuarios -->
+                    <div class="overflow-x-auto rounded-lg border shadow-md" style="border-color: var(--border-color);">
+                        ${this.renderizarTablaUsuarios()}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Inicializar el filtro después de renderizar
+        setTimeout(() => {
+            this.cambiarTipoFiltro();
+        }, 100);
+
+        return html;
+    },
+
+    /**
+     * Renderizar tabla de usuarios
+     */
+    renderizarTablaUsuarios() {
+        let html = `
+            <table class="w-full">
+                <thead style="background-color: var(--bg-tertiary); border-bottom: 1px solid var(--border-color);">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style="color: var(--text-primary);">Nombre Completo</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style="color: var(--text-primary);">Email</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style="color: var(--text-primary);">Rol</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style="color: var(--text-primary);">Estado</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style="color: var(--text-primary);">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody style="background-color: var(--card-bg);" class="divide-y">
         `;
 
         this.usuarios.forEach(usuario => {
@@ -159,10 +316,8 @@ const usuariosModule = {
         });
 
         html += `
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                </tbody>
+            </table>
         `;
 
         return html;
@@ -622,6 +777,219 @@ const usuariosModule = {
         if (this.modalAbierto) {
             this.modalAbierto.remove();
             this.modalAbierto = null;
+        }
+    },
+
+    /**
+     * Cambiar tipo de filtro
+     */
+    cambiarTipoFiltro() {
+        const campo = document.getElementById('filtroCampo').value;
+        const contenedor = document.getElementById('contenedorValor');
+        
+        if (!contenedor) return;
+        
+        // Limpiar contenedor
+        contenedor.innerHTML = '';
+        
+        switch(campo) {
+            case 'nombre':
+                contenedor.innerHTML = `
+                    <label for="filtroValor" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
+                        <i class="fas fa-user mr-2"></i>Nombre
+                    </label>
+                    <input 
+                        type="text" 
+                        id="filtroValor" 
+                        class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                        style="background-color: var(--card-bg); color: var(--text-primary); border-color: var(--border-color);"
+                        placeholder="Buscar por nombre..."
+                        onkeypress="if(event.key === 'Enter') usuariosModule.buscarUsuarios()"
+                    >
+                `;
+                break;
+                
+            case 'email':
+                contenedor.innerHTML = `
+                    <label for="filtroValor" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
+                        <i class="fas fa-envelope mr-2"></i>Email
+                    </label>
+                    <input 
+                        type="email" 
+                        id="filtroValor" 
+                        class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                        style="background-color: var(--card-bg); color: var(--text-primary); border-color: var(--border-color);"
+                        placeholder="Buscar por email..."
+                        onkeypress="if(event.key === 'Enter') usuariosModule.buscarUsuarios()"
+                    >
+                `;
+                break;
+                
+            case 'rol':
+                contenedor.innerHTML = `
+                    <label for="filtroValor" class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
+                        <i class="fas fa-user-tag mr-2"></i>Rol
+                    </label>
+                    <select 
+                        id="filtroValor" 
+                        class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                        style="background-color: var(--card-bg); color: var(--text-primary); border-color: var(--border-color);"
+                    >
+                        <option value="">Todos los roles</option>
+                        ${this.roles.map(rol => `<option value="${rol.nombre_rol}">${rol.nombre_rol}</option>`).join('')}
+                    </select>
+                `;
+                break;
+        }
+        
+        // Enfocar el campo de entrada
+        setTimeout(() => {
+            const input = document.getElementById('filtroValor');
+            if (input && input.tagName === 'INPUT') {
+                input.focus();
+            }
+        }, 100);
+    },
+
+    /**
+     * Buscar usuarios
+     */
+    async buscarUsuarios() {
+        const campo = document.getElementById('filtroCampo').value;
+        const valor = document.getElementById('filtroValor').value.trim();
+        
+        if (!valor) {
+            this.mostrarToastError('Por favor ingrese un valor para buscar');
+            return;
+        }
+        
+        this.busquedaActual = valor;
+        this.campoActual = campo;
+        
+        try {
+            const html = await this.cargarUsuarios(valor, campo);
+            const contenidoWrapper = document.querySelector('#contenido');
+            if (contenidoWrapper) {
+                contenidoWrapper.innerHTML = html;
+            }
+        } catch (error) {
+            console.error('[USUARIOS] Error en búsqueda:', error);
+            this.mostrarToastError('Error al realizar búsqueda. Por favor, inténtelo de nuevo.');
+        }
+    },
+
+    /**
+     * Limpiar filtro
+     */
+    async limpiarFiltro() {
+        this.busquedaActual = '';
+        this.campoActual = 'nombre';
+        
+        try {
+            const html = await this.cargarUsuarios();
+            const contenidoWrapper = document.querySelector('#contenido');
+            if (contenidoWrapper) {
+                contenidoWrapper.innerHTML = html;
+            }
+            
+            this.mostrarToastExito('Filtros limpiados correctamente');
+        } catch (error) {
+            console.error('[USUARIOS] Error limpiando filtros:', error);
+            this.mostrarToastError('Error al limpiar filtros. Por favor, inténtelo de nuevo.');
+        }
+    },
+
+    /**
+     * Mostrar toast de éxito centrado debajo de botones de búsqueda
+     */
+    mostrarToastExito(mensaje) {
+        const toastContainer = document.getElementById('toastBusquedaContainer');
+        if (toastContainer) {
+            toastContainer.innerHTML = `
+                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg text-sm font-medium animate-pulse">
+                    <i class="fas fa-check-circle mr-2"></i>${mensaje}
+                </div>
+            `;
+            
+            // Auto-ocultar después de 2 segundos
+            setTimeout(() => {
+                toastContainer.innerHTML = '';
+            }, 2000);
+        }
+    },
+
+    /**
+     * Mostrar toast cuando se encuentran resultados
+     */
+    mostrarToastConResultados(campo, busqueda, cantidad) {
+        const toastContainer = document.getElementById('toastBusquedaContainer');
+        if (toastContainer) {
+            let campoTexto = '';
+            switch(campo) {
+                case 'nombre': campoTexto = 'nombre'; break;
+                case 'email': campoTexto = 'email'; break;
+                case 'rol': campoTexto = 'rol'; break;
+            }
+            
+            const mensaje = cantidad === 1 
+                ? `Se encontró ${cantidad} usuario con "${busqueda}" en ${campoTexto}`
+                : `Se encontraron ${cantidad} usuarios con "${busqueda}" en ${campoTexto}`;
+                
+            toastContainer.innerHTML = `
+                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg text-sm font-medium animate-pulse">
+                    <i class="fas fa-search mr-2"></i>${mensaje}
+                </div>
+            `;
+            
+            // Auto-ocultar después de 2 segundos
+            setTimeout(() => {
+                toastContainer.innerHTML = '';
+            }, 2000);
+        }
+    },
+
+    /**
+     * Mostrar toast cuando no se encuentran resultados
+     */
+    mostrarToastSinResultados(campo, busqueda) {
+        const toastContainer = document.getElementById('toastBusquedaContainer');
+        if (toastContainer) {
+            let campoTexto = '';
+            switch(campo) {
+                case 'nombre': campoTexto = 'nombre'; break;
+                case 'email': campoTexto = 'email'; break;
+                case 'rol': campoTexto = 'rol'; break;
+            }
+            
+            toastContainer.innerHTML = `
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-sm font-medium animate-pulse">
+                    <i class="fas fa-exclamation-circle mr-2"></i>No se encontraron usuarios con "${busqueda}" en ${campoTexto}
+                </div>
+            `;
+            
+            // Auto-ocultar después de 2 segundos
+            setTimeout(() => {
+                toastContainer.innerHTML = '';
+            }, 2000);
+        }
+    },
+
+    /**
+     * Mostrar toast de error centrado debajo de botones de búsqueda
+     */
+    mostrarToastError(mensaje) {
+        const toastContainer = document.getElementById('toastBusquedaContainer');
+        if (toastContainer) {
+            toastContainer.innerHTML = `
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-sm font-medium animate-pulse">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>${mensaje}
+                </div>
+            `;
+            
+            // Auto-ocultar después de 2 segundos
+            setTimeout(() => {
+                toastContainer.innerHTML = '';
+            }, 2000);
         }
     }
 };

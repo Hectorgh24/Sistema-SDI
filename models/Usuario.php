@@ -97,9 +97,11 @@ class Usuario
      * @param int $offset Desplazamiento
      * @param string $estado Filtrar por estado (opcional)
      * @param string $rol Filtrar por rol (opcional)
+     * @param string $busqueda Término de búsqueda (opcional)
+     * @param string $campo Campo de búsqueda (opcional)
      * @return array Arreglo de usuarios
      */
-    public function listar($limit = 10, $offset = 0, $estado = null, $rol = null)
+    public function listar($limit = 10, $offset = 0, $estado = null, $rol = null, $busqueda = null, $campo = null)
     {
         $sql = "SELECT u.id_usuario, u.nombre, u.apellido_paterno, u.apellido_materno,
                        u.email, u.estado, u.fecha_registro, r.nombre_rol
@@ -117,6 +119,26 @@ class Usuario
         if ($rol !== null) {
             $sql .= " AND r.nombre_rol = :rol";
             $params[':rol'] = $rol;
+        }
+
+        // Agregar filtros de búsqueda
+        if ($busqueda !== null && $campo !== null) {
+            switch ($campo) {
+                case 'nombre':
+                    $sql .= " AND (u.nombre LIKE :busqueda_nombre OR u.apellido_paterno LIKE :busqueda_apellido OR u.apellido_materno LIKE :busqueda_materno)";
+                    $params[':busqueda_nombre'] = '%' . $busqueda . '%';
+                    $params[':busqueda_apellido'] = '%' . $busqueda . '%';
+                    $params[':busqueda_materno'] = '%' . $busqueda . '%';
+                    break;
+                case 'email':
+                    $sql .= " AND u.email LIKE :busqueda_email";
+                    $params[':busqueda_email'] = '%' . $busqueda . '%';
+                    break;
+                case 'rol':
+                    $sql .= " AND r.nombre_rol LIKE :busqueda_rol";
+                    $params[':busqueda_rol'] = '%' . $busqueda . '%';
+                    break;
+            }
         }
 
         $sql .= " ORDER BY u.fecha_registro DESC LIMIT :limit OFFSET :offset";
@@ -138,9 +160,11 @@ class Usuario
      * 
      * @param string $estado Filtrar por estado
      * @param string $rol Filtrar por rol
+     * @param string $busqueda Término de búsqueda (opcional)
+     * @param string $campo Campo de búsqueda (opcional)
      * @return int Total de usuarios
      */
-    public function contar($estado = null, $rol = null)
+    public function contar($estado = null, $rol = null, $busqueda = null, $campo = null)
     {
         $sql = "SELECT COUNT(*) as total FROM " . self::TABLE . " u
                 JOIN roles r ON u.id_rol = r.id_rol WHERE 1=1";
@@ -155,6 +179,26 @@ class Usuario
         if ($rol !== null) {
             $sql .= " AND r.nombre_rol = :rol";
             $params[':rol'] = $rol;
+        }
+
+        // Agregar filtros de búsqueda
+        if ($busqueda !== null && $campo !== null) {
+            switch ($campo) {
+                case 'nombre':
+                    $sql .= " AND (u.nombre LIKE :busqueda_nombre OR u.apellido_paterno LIKE :busqueda_apellido OR u.apellido_materno LIKE :busqueda_materno)";
+                    $params[':busqueda_nombre'] = '%' . $busqueda . '%';
+                    $params[':busqueda_apellido'] = '%' . $busqueda . '%';
+                    $params[':busqueda_materno'] = '%' . $busqueda . '%';
+                    break;
+                case 'email':
+                    $sql .= " AND u.email LIKE :busqueda_email";
+                    $params[':busqueda_email'] = '%' . $busqueda . '%';
+                    break;
+                case 'rol':
+                    $sql .= " AND r.nombre_rol LIKE :busqueda_rol";
+                    $params[':busqueda_rol'] = '%' . $busqueda . '%';
+                    break;
+            }
         }
 
         $stmt = $this->db->prepare($sql);

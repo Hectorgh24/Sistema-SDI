@@ -26,7 +26,7 @@ if (strlen($datosAdmin['password']) < 8) {
 }
 
 // Verificar si el email ya existe
-$usuarioExistente = $usuarioModel->buscarPorEmail($datosAdmin['email']);
+$usuarioExistente = $usuarioModel->obtenerPorEmail($datosAdmin['email']);
 if ($usuarioExistente) {
     echo "⚠️  ADVERTENCIA: Ya existe un usuario con el email: {$datosAdmin['email']}\n";
     echo "¿Deseas continuar de todos modos? Esto fallará si el email está en uso.\n\n";

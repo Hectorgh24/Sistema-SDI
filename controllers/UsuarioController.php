@@ -49,12 +49,14 @@ class UsuarioController
 
             $estado = $_GET['estado'] ?? null;
             $rol = $_GET['rol'] ?? null;
+            $busqueda = $_GET['busqueda'] ?? null;
+            $campo = $_GET['campo'] ?? null;
 
             // Obtener usuarios
-            $usuarios = $this->usuarioModel->listar($limit, $offset, $estado, $rol);
+            $usuarios = $this->usuarioModel->listar($limit, $offset, $estado, $rol, $busqueda, $campo);
             
             // Obtener total
-            $total = $this->usuarioModel->contar($estado, $rol);
+            $total = $this->usuarioModel->contar($estado, $rol, $busqueda, $campo);
 
             $data = [
                 'usuarios' => $usuarios,
