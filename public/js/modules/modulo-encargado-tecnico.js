@@ -51,7 +51,10 @@ const encargadoTecnicoModule = {
     // ========================================================================
 
     async renderizarVistaPrincipal() {
-        const contenedor = document.getElementById('contenido-dinamico') || document.body; // Fallback
+        const contenedor = document.getElementById('contenido-dinamico');
+        if (!contenedor) {
+            throw new Error('No se encontró el contenedor #contenido-dinamico');
+        }
         
         const html = `
             <div class="w-full max-w-7xl mx-auto p-4 animate-fade-in-down">
@@ -122,64 +125,66 @@ const encargadoTecnicoModule = {
             : 1;
 
         return `
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-1">
-                    <form id="form-carpeta-tecnico" class="bg-white rounded-xl shadow-lg border border-emerald-100 p-6 sticky top-6">
-                        <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Nueva Carpeta Física</h3>
-                        
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-xs font-bold text-emerald-700 uppercase mb-1">No. Consecutivo</label>
-                                <input type="number" name="no_carpeta_fisica" value="${siguienteNum}" readonly 
-                                    class="w-full bg-gray-100 text-gray-600 border border-gray-200 rounded-lg px-4 py-2 focus:outline-none cursor-not-allowed">
+            <div class="w-full flex justify-center py-4">
+                <div class="w-full max-w-6xl">
+                    <div class="flex flex-col gap-6">
+
+                        <form id="form-carpeta-tecnico" class="bg-white rounded-xl shadow-lg border border-emerald-100 p-6 mx-auto w-full max-w-3xl">
+                            <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Nueva Carpeta Física</h3>
+
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-emerald-700 uppercase mb-1">No. Consecutivo</label>
+                                    <input type="number" name="no_carpeta_fisica" value="${siguienteNum}" readonly 
+                                        class="w-full bg-gray-100 text-gray-600 border border-gray-200 rounded-lg px-4 py-2 focus:outline-none cursor-not-allowed">
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Título de Carpeta <span class="text-red-500">*</span></label>
+                                    <input type="text" name="titulo" placeholder="Ej: Oficios Recibidos 2026-A" required
+                                        class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Etiqueta (Código) <span class="text-red-500">*</span></label>
+                                    <input type="text" name="etiqueta_identificadora" placeholder="Ej: TEC-2026-01" required
+                                        class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Descripción</label>
+                                    <textarea name="descripcion" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-emerald-500 outline-none resize-none"></textarea>
+                                </div>
+
+                                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg shadow-md hover:shadow-lg transition-all transform active:scale-95">
+                                    <i class="fas fa-plus-circle mr-2"></i>Crear Carpeta
+                                </button>
+                            </div>
+                        </form>
+
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                                <h3 class="font-bold text-gray-700">Carpetas Disponibles</h3>
+                                <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full">${this.state.carpetas.length} Total</span>
                             </div>
 
-                            <div>
-                                <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Título de Carpeta <span class="text-red-500">*</span></label>
-                                <input type="text" name="titulo" placeholder="Ej: Oficios Recibidos 2026-A" required
-                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left text-gray-500">
+                                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3">ID Físico</th>
+                                            <th class="px-6 py-3">Título / Etiqueta</th>
+                                            <th class="px-6 py-3 text-center">Estado</th>
+                                            <th class="px-6 py-3 text-center">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100">
+                                        ${this.renderizarFilasCarpetas()}
+                                    </tbody>
+                                </table>
                             </div>
-
-                            <div>
-                                <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Etiqueta (Código) <span class="text-red-500">*</span></label>
-                                <input type="text" name="etiqueta_identificadora" placeholder="Ej: TEC-2026-01" required
-                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Descripción</label>
-                                <textarea name="descripcion" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-emerald-500 outline-none resize-none"></textarea>
-                            </div>
-
-                            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg shadow-md hover:shadow-lg transition-all transform active:scale-95">
-                                <i class="fas fa-plus-circle mr-2"></i>Crear Carpeta
-                            </button>
                         </div>
-                    </form>
-                </div>
 
-                <div class="lg:col-span-2">
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                        <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                            <h3 class="font-bold text-gray-700">Carpetas Disponibles</h3>
-                            <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full">${this.state.carpetas.length} Total</span>
-                        </div>
-                        
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-sm text-left text-gray-500">
-                                <thead class="text-xs text-gray-700 uppercase bg-gray-50">
-                                    <tr>
-                                        <th class="px-6 py-3">ID Físico</th>
-                                        <th class="px-6 py-3">Título / Etiqueta</th>
-                                        <th class="px-6 py-3 text-center">Estado</th>
-                                        <th class="px-6 py-3 text-center">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-100">
-                                    ${this.renderizarFilasCarpetas()}
-                                </tbody>
-                            </table>
-                        </div>
                     </div>
                 </div>
             </div>

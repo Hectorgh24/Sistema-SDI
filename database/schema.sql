@@ -6,9 +6,12 @@
 
 USE `sdi_gestion_documental`;
 
+-- Limpieza de tablas existentes para evitar conflictos al recrear
+SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO';
+SET time_zone = '+00:00';
+
 SET FOREIGN_KEY_CHECKS = 0;
 
--- Limpieza de tablas existentes para evitar conflictos al recrear
 DROP TABLE IF EXISTS archivos_adjuntos;
 DROP TABLE IF EXISTS detalles_valores_documento;
 DROP TABLE IF EXISTS registros_documentos;

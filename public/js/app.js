@@ -176,9 +176,10 @@ async function cargarContenidoModulo(modulo) {
                     // Scroll al inicio
                     contenidoSection.scrollTo({ top: 0, behavior: 'smooth' });
                     // Asegurar que el contenedor padre esté centrado (excepto para dashboard)
-                    if (modulo !== 'dashboard') {
-                        const contenedorPadre = contenidoSection.querySelector('div.flex');
-                        if (contenedorPadre) {
+                    const contenedorPadre = contenidoSection.querySelector('div.flex');
+                    if (contenedorPadre) {
+                        contenedorPadre.classList.remove('items-center');
+                        if (modulo !== 'dashboard' && modulo !== 'responsable-tecnico') {
                             contenedorPadre.classList.add('items-center');
                         }
                     }
@@ -188,6 +189,15 @@ async function cargarContenidoModulo(modulo) {
                     // cuando se selecciona un submódulo específico
                 }
             }, 100);
+        }
+
+        // Inicialización post-render de módulos que se montan en un contenedor
+        if (modulo === 'responsable-tecnico') {
+            if (typeof encargadoTecnicoModule === 'undefined') {
+                ui.toast('Error: Módulo Responsable Técnico no disponible', 'error');
+            } else {
+                await encargadoTecnicoModule.init();
+            }
         }
         
         // Si es el módulo de usuarios, inicializar después de cargar
@@ -799,145 +809,7 @@ function eliminarUsuario(id) {
  * Cargar módulo Responsable Técnico
  */
 async function cargarResponsableTecnico() {
-    return `
-        <div class="w-full max-w-6xl mx-auto">
-            <!-- Header del módulo -->
-            <div class="rounded-xl shadow-lg p-8 mb-8" style="background: linear-gradient(to right, var(--bg-tertiary), var(--card-bg)); border: 1px solid var(--border-color);">
-                <div class="flex items-center">
-                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full mr-4" style="background-color: var(--color-primary);">
-                        <i class="fas fa-user-tie text-2xl" style="color: white;"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-3xl font-bold" style="color: var(--text-primary);">Responsable Técnico</h1>
-                        <p class="text-lg" style="color: var(--text-secondary);">Gestión técnica y soporte del sistema</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Contenido principal -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Tarjeta de Estado del Sistema -->
-                <div class="rounded-xl shadow-lg p-6" style="background: var(--card-bg); border: 1px solid var(--border-color);">
-                    <div class="flex items-center mb-4">
-                        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full mr-3" style="background-color: #10b981;">
-                            <i class="fas fa-server text-white text-xl"></i>
-                        </div>
-                        <h3 class="text-xl font-semibold" style="color: var(--text-primary);">Estado del Sistema</h3>
-                    </div>
-                    <p class="mb-4" style="color: var(--text-secondary);">Monitoreo del estado general del sistema</p>
-                    <div class="space-y-2">
-                        <div class="flex justify-between items-center">
-                            <span style="color: var(--text-secondary);">Servidor Web</span>
-                            <span class="px-2 py-1 rounded-full text-xs font-semibold" style="background-color: #10b981; color: white;">Activo</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span style="color: var(--text-secondary);">Base de Datos</span>
-                            <span class="px-2 py-1 rounded-full text-xs font-semibold" style="background-color: #10b981; color: white;">Conectada</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span style="color: var(--text-secondary);">Sistema Archivos</span>
-                            <span class="px-2 py-1 rounded-full text-xs font-semibold" style="background-color: #10b981; color: white;">Operativo</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tarjeta de Soporte -->
-                <div class="rounded-xl shadow-lg p-6" style="background: var(--card-bg); border: 1px solid var(--border-color);">
-                    <div class="flex items-center mb-4">
-                        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full mr-3" style="background-color: #3b82f6;">
-                            <i class="fas fa-headset text-white text-xl"></i>
-                        </div>
-                        <h3 class="text-xl font-semibold" style="color: var(--text-primary);">Soporte Técnico</h3>
-                    </div>
-                    <p class="mb-4" style="color: var(--text-secondary);">Gestión de solicitudes de soporte</p>
-                    <div class="space-y-3">
-                        <button class="w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-md" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white;">
-                            <i class="fas fa-plus mr-2"></i>Nueva Solicitud
-                        </button>
-                        <button class="w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-md" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color);">
-                            <i class="fas fa-list mr-2"></i>Ver Solicitudes
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Tarjeta de Mantenimiento -->
-                <div class="rounded-xl shadow-lg p-6" style="background: var(--card-bg); border: 1px solid var(--border-color);">
-                    <div class="flex items-center mb-4">
-                        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full mr-3" style="background-color: #f59e0b;">
-                            <i class="fas fa-tools text-white text-xl"></i>
-                        </div>
-                        <h3 class="text-xl font-semibold" style="color: var(--text-primary);">Mantenimiento</h3>
-                    </div>
-                    <p class="mb-4" style="color: var(--text-secondary);">Herramientas de mantenimiento del sistema</p>
-                    <div class="space-y-3">
-                        <button class="w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-md" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white;">
-                            <i class="fas fa-broom mr-2"></i>Limpiar Caché
-                        </button>
-                        <button class="w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-md" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color);">
-                            <i class="fas fa-database mr-2"></i>Optimizar BD
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Tarjeta de Reportes -->
-                <div class="rounded-xl shadow-lg p-6" style="background: var(--card-bg); border: 1px solid var(--border-color);">
-                    <div class="flex items-center mb-4">
-                        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full mr-3" style="background-color: #8b5cf6;">
-                            <i class="fas fa-chart-bar text-white text-xl"></i>
-                        </div>
-                        <h3 class="text-xl font-semibold" style="color: var(--text-primary);">Reportes</h3>
-                    </div>
-                    <p class="mb-4" style="color: var(--text-secondary);">Generación de reportes técnicos</p>
-                    <div class="space-y-3">
-                        <button class="w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-md" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white;">
-                            <i class="fas fa-file-alt mr-2"></i>Reporte Sistema
-                        </button>
-                        <button class="w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-md" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color);">
-                            <i class="fas fa-download mr-2"></i>Exportar Datos
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Tarjeta de Configuración -->
-                <div class="rounded-xl shadow-lg p-6" style="background: var(--card-bg); border: 1px solid var(--border-color);">
-                    <div class="flex items-center mb-4">
-                        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full mr-3" style="background-color: #ef4444;">
-                            <i class="fas fa-cog text-white text-xl"></i>
-                        </div>
-                        <h3 class="text-xl font-semibold" style="color: var(--text-primary);">Configuración</h3>
-                    </div>
-                    <p class="mb-4" style="color: var(--text-secondary);">Configuración técnica del sistema</p>
-                    <div class="space-y-3">
-                        <button class="w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-md" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white;">
-                            <i class="fas fa-sliders-h mr-2"></i>Parámetros
-                        </button>
-                        <button class="w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-md" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color);">
-                            <i class="fas fa-key mr-2"></i>Seguridad
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Tarjeta de Logs -->
-                <div class="rounded-xl shadow-lg p-6" style="background: var(--card-bg); border: 1px solid var(--border-color);">
-                    <div class="flex items-center mb-4">
-                        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full mr-3" style="background-color: #6b7280;">
-                            <i class="fas fa-file-alt text-white text-xl"></i>
-                        </div>
-                        <h3 class="text-xl font-semibold" style="color: var(--text-primary);">Logs del Sistema</h3>
-                    </div>
-                    <p class="mb-4" style="color: var(--text-secondary);">Visualización de logs y eventos</p>
-                    <div class="space-y-3">
-                        <button class="w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-md" style="background: linear-gradient(135deg, #6b7280, #4b5563); color: white;">
-                            <i class="fas fa-eye mr-2"></i>Ver Logs
-                        </button>
-                        <button class="w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:shadow-md" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color);">
-                            <i class="fas fa-download mr-2"></i>Descargar
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
+    return '<div id="contenido-dinamico"></div>';
 }
 
 function mostrarFormularioNuevoDocumento() { ui.toast('Funcionalidad en desarrollo', 'info'); }
